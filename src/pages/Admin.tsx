@@ -18,7 +18,7 @@ const systemCards = [
   { title: "Activity Log", desc: "System-wide audit and event logging", icon: Activity, stat: "12.4K events" },
 ];
 
-type Tab = "overview" | "workflows" | "audit" | "connectors" | "employees" | "intelligence";
+type Tab = "overview" | "workflows" | "audit" | "connectors" | "employees" | "intelligence" | "metrics";
 
 interface Workflow {
   id: string;
@@ -36,6 +36,19 @@ interface Connector {
   category: string;
   lastChecked: string;
   details?: string;
+}
+
+interface SystemMetrics {
+  db_latency_ms: number | null;
+  queue_depth: number | null;
+  ai_latency_ms: number | null;
+  error_rate: number | null;
+  active_workers: number;
+  leads_ingested_today: number | null;
+  last_scrape_at: string | null;
+  tasks_last_hour: number | null;
+  ai_provider: string | null;
+  timestamp: string;
 }
 
 interface AuditLog {
@@ -64,6 +77,8 @@ const AdminPage = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
   const [employeesLoading, setEmployeesLoading] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editRole, setEditRole] = useState<string>("");
@@ -72,6 +87,14 @@ const AdminPage = () => {
   const [newWfName, setNewWfName] = useState("");
   const [newWfTrigger, setNewWfTrigger] = useState<"manual" | "schedule" | "webhook" | "lead_created" | "lead_updated">("manual");
   const { toast } = useToast();
+
+  const fetchMetrics = () => {
+    setMetricsLoading(true);
+    api.get<SystemMetrics>("/metrics/system")
+      .then(setSystemMetrics)
+      .catch(() => {})
+      .finally(() => setMetricsLoading(false));
+  };
 
   const fetchEmployees = () => {
     setEmployeesLoading(true);
@@ -173,7 +196,7 @@ const AdminPage = () => {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 bg-card border border-border rounded-lg p-1 w-fit">
-        {(["overview", "workflows", "audit", "connectors", "employees", "intelligence"] as Tab[]).map((t) => (
+        {(["overview", "workflows", "audit", "connectors", "employees", "intelligence", "metrics"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -507,6 +530,59 @@ const AdminPage = () => {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === "metrics" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Live system health metrics.</p>
+            <Button variant="outline" size="sm" onClick={fetchMetrics} disabled={metricsLoading}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${metricsLoading ? "animate-spin" : ""}`} /> Refresh
+            </Button>
+          </div>
+
+          {!systemMetrics && !metricsLoading && (
+            <Button onClick={fetchMetrics} variant="gold">Load Metrics</Button>
+          )}
+
+          {systemMetrics && (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "DB Latency", value: systemMetrics.db_latency_ms != null ? `${systemMetrics.db_latency_ms}ms` : "N/A", ok: (systemMetrics.db_latency_ms ?? 999) < 200, desc: "PostgreSQL ping" },
+                  { label: "AI Latency", value: systemMetrics.ai_latency_ms != null ? `${systemMetrics.ai_latency_ms}ms` : "N/A", ok: (systemMetrics.ai_latency_ms ?? 9999) < 5000, desc: systemMetrics.ai_provider || "Groq" },
+                  { label: "Queue Depth", value: String(systemMetrics.queue_depth ?? "N/A"), ok: (systemMetrics.queue_depth ?? 0) < 50, desc: "xps:scrape:queue" },
+                  { label: "Error Rate", value: systemMetrics.error_rate != null ? `${systemMetrics.error_rate}%` : "N/A", ok: (systemMetrics.error_rate ?? 0) < 10, desc: "Last hour" },
+                  { label: "Active Workers", value: String(systemMetrics.active_workers), ok: systemMetrics.active_workers > 0, desc: "Scraper workers" },
+                  { label: "Leads Today", value: String(systemMetrics.leads_ingested_today ?? "N/A"), ok: true, desc: "Ingested today" },
+                  { label: "Tasks/Hour", value: String(systemMetrics.tasks_last_hour ?? "N/A"), ok: true, desc: "Agent tasks" },
+                  { label: "Last Scrape", value: systemMetrics.last_scrape_at ? new Date(systemMetrics.last_scrape_at).toLocaleTimeString() : "N/A", ok: true, desc: "Completed at" },
+                ].map((m) => (
+                  <div key={m.label} className={`bg-gradient-card border rounded-xl p-4 ${m.ok ? "border-green-500/20" : "border-red-500/20"}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`h-2 w-2 rounded-full ${m.ok ? "bg-green-400" : "bg-red-400"}`} />
+                      <span className="text-xs text-muted-foreground">{m.label}</span>
+                    </div>
+                    <div className={`text-xl font-bold ${m.ok ? "text-green-400" : "text-red-400"}`}>{m.value}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{m.desc}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Last updated: {new Date(systemMetrics.timestamp).toLocaleString()}</p>
+            </>
+          )}
+
+          {metricsLoading && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-gradient-card border border-border rounded-xl p-4">
+                  <div className="h-4 bg-muted rounded animate-pulse mb-2 w-16" />
+                  <div className="h-6 bg-muted rounded animate-pulse w-20" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

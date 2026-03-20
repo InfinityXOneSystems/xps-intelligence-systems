@@ -19,6 +19,10 @@ import { adminRouter } from "./routes/admin.js";
 import { intelligenceRouter } from "./routes/intelligence.js";
 import { telemetryRouter } from "./routes/telemetry.js";
 import { competeRouter } from "./routes/compete.js";
+import { salesFlowRouter } from "./routes/sales-flow.js";
+import { actionsRouter } from "./routes/actions.js";
+import { feedbackRouter } from "./routes/feedback.js";
+import { metricsRouter } from "./routes/metrics.js";
 
 const app = express();
 const PORT = process.env.API_PORT || 4000;
@@ -64,6 +68,10 @@ app.use("/api/admin", adminRouter);
 app.use("/api/intelligence", intelligenceRouter);
 app.use("/api/telemetry", telemetryRouter);
 app.use("/api/compete", competeRouter);
+app.use("/api/sales-flow", salesFlowRouter);
+app.use("/api/actions", actionsRouter);
+app.use("/api/feedback", feedbackRouter);
+app.use("/api/metrics", metricsRouter);
 
 // Global error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

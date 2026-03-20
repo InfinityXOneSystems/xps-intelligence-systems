@@ -26,6 +26,7 @@ import Settings from "./pages/Settings";
 import Onboarding from "./pages/Onboarding";
 import Intelligence from "./pages/Intelligence";
 import SalesStaff from "./pages/SalesStaff";
+import SalesFlow from "./pages/SalesFlow";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => (
           <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
           <Route path="/intelligence" element={<AuthGuard><Intelligence /></AuthGuard>} />
           <Route path="/sales-staff" element={<AuthGuard><SalesStaff /></AuthGuard>} />
+          <Route path="/sales-flow" element={<AuthGuard><SalesFlow /></AuthGuard>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

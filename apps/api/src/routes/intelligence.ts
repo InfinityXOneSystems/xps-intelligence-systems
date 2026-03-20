@@ -410,3 +410,205 @@ intelligenceRouter.post("/company", async (req, res) => {
     res.status(500).json({ error: (err as Error).message });
   }
 });
+
+// ─── POST /api/intelligence/analyze-competitor ───────────────────────────────
+
+const CompetitorSchema = z.object({
+  competitor_url: z.string().url(),
+});
+
+intelligenceRouter.post("/analyze-competitor", requireRole("sales_staff", "manager", "owner", "admin"), async (req, res) => {
+  try {
+    const { competitor_url } = CompetitorSchema.parse(req.body);
+    const user = req.user!;
+    const db = getDb();
+
+    // Scrape competitor content
+    const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+    let content = "";
+
+    if (firecrawlKey) {
+      try {
+        const fcRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ url: competitor_url, formats: ["markdown"], timeout: 20000 }),
+          signal: AbortSignal.timeout(25000),
+        });
+        if (fcRes.ok) {
+          const fcData = await fcRes.json() as { success: boolean; markdown?: string };
+          if (fcData.success && fcData.markdown) content = fcData.markdown.slice(0, 6000);
+        }
+      } catch (err) {
+        console.warn("[Intelligence] Firecrawl scrape failed:", (err as Error).message);
+      }
+    }
+
+    if (!content) {
+      try {
+        const r = await fetch(competitor_url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; XPS-Intelligence/1.0)" },
+          signal: AbortSignal.timeout(10000),
+        });
+        const html = await r.text();
+        content = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 4000);
+      } catch {
+        content = `Could not scrape ${competitor_url}`;
+      }
+    }
+
+    const prompt = `Analyze this competitor website for an epoxy flooring company.
+URL: ${competitor_url}
+Content: ${content}
+
+Return JSON:
+{
+  "companyName": "name",
+  "services": ["service1"],
+  "pricing": ["pricing info"],
+  "strengths": ["strength1"],
+  "weaknesses": ["weakness1"],
+  "marketPosition": "description",
+  "threatLevel": "low|medium|high",
+  "recommendations": ["how to compete with this company"]
+}`;
+
+    const aiResult = await callGroqRag(prompt, []);
+    let analysis: Record<string, unknown>;
+    try {
+      const match = aiResult.match(/\{[\s\S]*\}/);
+      analysis = match ? JSON.parse(match[0]) as Record<string, unknown> : { raw: aiResult };
+    } catch {
+      analysis = { raw: aiResult };
+    }
+
+    // Store intelligence report
+    const reportId = randomUUID();
+    await db.query(
+      `INSERT INTO intelligence_reports (id, type, subject, data, created_by) VALUES ($1,'competitor',$2,$3,$4)`,
+      [reportId, competitor_url, JSON.stringify({ ...analysis, scrapedAt: new Date().toISOString() }), user.id]
+    ).catch(() => {});
+
+    await db.query(
+      "INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES ($1,$2,$3,$4,$5)",
+      [user.id, "intelligence.analyze_competitor", "intelligence_report", reportId, JSON.stringify({ url: competitor_url })]
+    ).catch(() => {});
+
+    res.json({ report_id: reportId, competitor_url, analysis });
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.errors });
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ─── POST /api/intelligence/score-lead ────────────────────────────────────────
+
+const ScoreLeadSchema = z.object({
+  lead_id: z.string().uuid(),
+});
+
+intelligenceRouter.post("/score-lead", requireRole("sales_staff", "manager", "owner", "admin"), async (req, res) => {
+  try {
+    const { lead_id } = ScoreLeadSchema.parse(req.body);
+    const db = getDb();
+    const user = req.user!;
+
+    const leadResult = await db.query(
+      `SELECT id, company_name, email, phone, website, vertical, location, score, notes, metadata
+       FROM leads WHERE id = $1 AND deleted_at IS NULL`,
+      [lead_id]
+    );
+    if (!leadResult.rows[0]) return res.status(404).json({ error: "Lead not found" });
+
+    const lead = leadResult.rows[0] as Record<string, unknown>;
+    const original = Number(lead.score ?? 50);
+
+    // Multi-factor scoring
+    const factors: Array<{ factor: string; weight: number; value: number }> = [];
+    if (lead.phone) factors.push({ factor: "has_phone", weight: 10, value: 1 });
+    if (lead.email) factors.push({ factor: "has_email", weight: 15, value: 1 });
+    if (lead.website) factors.push({ factor: "has_website", weight: 8, value: 1 });
+
+    const highValueVerticals = ["epoxy", "concrete", "flooring", "property management", "warehouse"];
+    if (highValueVerticals.some((v) => (lead.vertical as string || "").toLowerCase().includes(v))) {
+      factors.push({ factor: "high_value_vertical", weight: 12, value: 1 });
+    }
+
+    const metadata = (lead.metadata as Record<string, unknown> | null) || {};
+    if (metadata.google_rating && Number(metadata.google_rating) >= 4) {
+      factors.push({ factor: "high_google_rating", weight: 10, value: 1 });
+    }
+
+    const bonus = factors.reduce((s, f) => s + f.weight * f.value, 0);
+    const newScore = Math.min(100, original + bonus);
+
+    await db.query("UPDATE leads SET score = $1, updated_at = NOW() WHERE id = $2", [newScore, lead_id]);
+
+    await db.query(
+      "INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES ($1,$2,$3,$4,$5)",
+      [user.id, "intelligence.score_lead", "lead", lead_id, JSON.stringify({ original, new_score: newScore, factors })]
+    ).catch(() => {});
+
+    res.json({
+      lead_id,
+      original_score: original,
+      new_score: newScore,
+      delta: newScore - original,
+      factors,
+    });
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.errors });
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ─── GET /api/intelligence/demand-report ──────────────────────────────────────
+
+intelligenceRouter.get("/demand-report", requireRole("sales_staff", "manager", "owner", "admin"), async (req, res) => {
+  try {
+    const db = getDb();
+
+    const leadsResult = await db.query(
+      `SELECT company_name, vertical, score, location, notes
+       FROM leads WHERE deleted_at IS NULL ORDER BY score DESC NULLS LAST LIMIT 100`
+    );
+    const leads = leadsResult.rows as Array<Record<string, unknown>>;
+
+    // Vertical breakdown
+    const verticals: Record<string, number> = {};
+    const locations: Record<string, number> = {};
+    for (const lead of leads) {
+      if (lead.vertical) verticals[lead.vertical as string] = (verticals[lead.vertical as string] ?? 0) + 1;
+      const loc = (lead.location as string || "").split(",")[0]?.trim();
+      if (loc) locations[loc] = (locations[loc] ?? 0) + 1;
+    }
+
+    const avgScore = leads.length > 0
+      ? Math.round(leads.reduce((s, l) => s + Number(l.score ?? 50), 0) / leads.length)
+      : 0;
+    const highScore = leads.filter((l) => Number(l.score ?? 0) > 75).length;
+
+    const signals = [];
+    if (highScore >= 5) signals.push({ signal: `${highScore} high-value leads`, category: "high_intent", strength: "strong" });
+
+    const topVertical = Object.entries(verticals).sort((a, b) => b[1] - a[1])[0];
+    if (topVertical) signals.push({ signal: `${topVertical[0]}: ${topVertical[1]} prospects`, category: "market_growth", strength: "moderate" });
+
+    res.json({
+      generated_at: new Date().toISOString(),
+      total_leads: leads.length,
+      avg_score: avgScore,
+      high_intent_leads: highScore,
+      vertical_breakdown: verticals,
+      location_breakdown: locations,
+      demand_signals: signals,
+      top_opportunities: leads.slice(0, 5).map((l) => ({
+        company: l.company_name,
+        score: l.score,
+        location: l.location,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});

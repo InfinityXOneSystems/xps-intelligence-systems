@@ -151,6 +151,55 @@ check("api", "leads.ts has /bulk endpoint", () => {
     : { status: "warn", detail: "POST /leads/bulk endpoint not found" };
 });
 
+// New autonomous system checks
+check("scraper", "Real search engine file exists", () =>
+  fileExists("services/scraper/src/search-engine.ts")
+    ? { status: "pass", detail: "search-engine.ts found" }
+    : { status: "fail", detail: "services/scraper/src/search-engine.ts missing" }
+);
+
+check("api", "Sales flow route exists", () =>
+  fileExists("apps/api/src/routes/sales-flow.ts")
+    ? { status: "pass" }
+    : { status: "fail", detail: "apps/api/src/routes/sales-flow.ts missing" }
+);
+
+check("api", "Actions route exists", () =>
+  fileExists("apps/api/src/routes/actions.ts")
+    ? { status: "pass" }
+    : { status: "fail", detail: "apps/api/src/routes/actions.ts missing" }
+);
+
+check("api", "Feedback route exists", () =>
+  fileExists("apps/api/src/routes/feedback.ts")
+    ? { status: "pass" }
+    : { status: "fail", detail: "apps/api/src/routes/feedback.ts missing" }
+);
+
+check("api", "Metrics route exists", () =>
+  fileExists("apps/api/src/routes/metrics.ts")
+    ? { status: "pass" }
+    : { status: "fail", detail: "apps/api/src/routes/metrics.ts missing" }
+);
+
+check("services", "ByteBot service exists", () =>
+  fileExists("services/bytebot/src/index.ts")
+    ? { status: "pass" }
+    : { status: "fail", detail: "services/bytebot/src/index.ts missing" }
+);
+
+check("services", "Intelligence service exists", () =>
+  fileExists("services/intelligence/src/index.ts")
+    ? { status: "pass" }
+    : { status: "fail", detail: "services/intelligence/src/index.ts missing" }
+);
+
+check("frontend", "SalesFlow page exists", () =>
+  fileExists("src/pages/SalesFlow.tsx")
+    ? { status: "pass" }
+    : { status: "warn", detail: "src/pages/SalesFlow.tsx missing" }
+);
+
 // 6. Database schema
 check("db", "DB schema exists", () =>
   fileExists("db/schema.sql") ? { status: "pass" } : { status: "fail", detail: "db/schema.sql missing" }
@@ -184,6 +233,15 @@ for (const envVar of requiredEnvVars) {
     envExample.includes(envVar)
       ? { status: "pass" }
       : { status: "warn", detail: `${envVar} not in .env.example` }
+  );
+}
+
+const scrapeEnvVars = ["GOOGLE_MAPS_API_KEY", "SERPAPI_KEY"];
+for (const envVar of scrapeEnvVars) {
+  check("env", `Scraper env var documented: ${envVar}`, () =>
+    envExample.includes(envVar)
+      ? { status: "pass" }
+      : { status: "warn", detail: `${envVar} not in .env.example — required for real scraper` }
   );
 }
 

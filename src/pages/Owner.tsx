@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Crown, TrendingUp, DollarSign, Users, BarChart3, Save, Activity, MapPin, Brain } from "lucide-react";
+import { Crown, TrendingUp, DollarSign, Users, BarChart3, Save, Activity, MapPin, Brain, Server, Database, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,16 @@ interface SimConfig {
   close_rate: number;
 }
 
+interface SystemMetrics {
+  db_latency_ms: number | null;
+  queue_depth: number | null;
+  ai_latency_ms: number | null;
+  error_rate: number | null;
+  active_workers: number;
+  leads_ingested_today: number | null;
+  last_scrape_at: string | null;
+}
+
 const fmt = (n: number) => `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
 const ANNUAL_COST_PER_STAFF = 60_000;
@@ -37,14 +47,21 @@ const calcProjections = (cfg: SimConfig) => {
 
 const Owner = () => {
   const [analytics, setAnalytics] = useState<OwnerAnalytics | null>(null);
+  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sim, setSim] = useState<SimConfig>({ staff: 10, territories: 5, avg_deal: 25000, close_rate: 20 });
   const { toast } = useToast();
 
   useEffect(() => {
-    api.get<OwnerAnalytics>("/owner/analytics")
-      .then(setAnalytics)
+    Promise.all([
+      api.get<OwnerAnalytics>("/owner/analytics"),
+      api.get<SystemMetrics>("/metrics/system").catch(() => null),
+    ])
+      .then(([analyticsData, metricsData]) => {
+        setAnalytics(analyticsData);
+        setSystemMetrics(metricsData);
+      })
       .catch((err) => toast({ title: "Failed to load analytics", description: (err as Error).message, variant: "destructive" }))
       .finally(() => setLoading(false));
   }, [toast]);
@@ -243,23 +260,60 @@ const Owner = () => {
           </p>
         </div>
 
-        {/* System Health */}
+        {/* Real-Time ROI */}
         <div className="bg-gradient-card border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Activity className="h-4 w-4 text-green-400" /> System Health
+            <DollarSign className="h-4 w-4 text-gold" /> Real-Time ROI Analysis
           </h3>
-          <div className="flex items-center gap-3">
-            <div className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-sm text-foreground">All systems operational</span>
-          </div>
-          <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-            {["API", "Database", "AI Factory", "Scraper"].map((svc) => (
-              <div key={svc} className="flex items-center gap-2 bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2">
-                <div className="h-2 w-2 rounded-full bg-green-400" />
-                <span className="text-xs text-foreground">{svc}</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: "Total Pipeline", value: analytics ? fmt(Number(analytics.leads.pipeline)) : "—", sub: "Active opportunities" },
+              { label: "Projected Annual Rev", value: fmt(projections.annual_revenue), sub: "Based on sim config" },
+              { label: "System ROI", value: `${projections.roi}%`, sub: `vs $${(sim.staff * ANNUAL_COST_PER_STAFF).toLocaleString()} cost` },
+              { label: "Leads Today", value: systemMetrics?.leads_ingested_today ?? "—", sub: "From scraper" },
+            ].map((item) => (
+              <div key={item.label} className="bg-primary/5 rounded-lg p-4">
+                <div className="text-xs text-muted-foreground">{item.label}</div>
+                <div className="text-xl font-bold text-gold mt-1">{item.value}</div>
+                <div className="text-xs text-muted-foreground mt-1">{item.sub}</div>
               </div>
             ))}
           </div>
+        </div>
+
+        {/* System Metrics */}
+        <div className="bg-gradient-card border border-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Server className="h-4 w-4 text-green-400" /> System Metrics
+          </h3>
+          {systemMetrics ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "DB Latency", value: systemMetrics.db_latency_ms != null ? `${systemMetrics.db_latency_ms}ms` : "N/A", icon: Database, ok: (systemMetrics.db_latency_ms ?? 999) < 200 },
+                { label: "AI Latency", value: systemMetrics.ai_latency_ms != null ? `${systemMetrics.ai_latency_ms}ms` : "N/A", icon: Cpu, ok: (systemMetrics.ai_latency_ms ?? 9999) < 5000 },
+                { label: "Queue Depth", value: systemMetrics.queue_depth ?? "N/A", icon: Activity, ok: (systemMetrics.queue_depth ?? 0) < 50 },
+                { label: "Error Rate", value: systemMetrics.error_rate != null ? `${systemMetrics.error_rate}%` : "N/A", icon: TrendingUp, ok: (systemMetrics.error_rate ?? 0) < 10 },
+              ].map((m) => (
+                <div key={m.label} className={`rounded-lg p-4 border ${m.ok ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <m.icon className={`h-3.5 w-3.5 ${m.ok ? "text-green-400" : "text-red-400"}`} />
+                    <span className="text-xs text-muted-foreground">{m.label}</span>
+                  </div>
+                  <div className={`text-lg font-bold ${m.ok ? "text-green-400" : "text-red-400"}`}>{m.value}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-sm text-foreground">All systems operational</span>
+            </div>
+          )}
+          {systemMetrics?.last_scrape_at && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Last scrape: {new Date(systemMetrics.last_scrape_at).toLocaleString()}
+            </p>
+          )}
         </div>
       </div>
     </AppLayout>
