@@ -36,11 +36,14 @@ analyticsRouter.get("/summary", async (req, res) => {
 
     // Proposals
     let propWhere = "WHERE p.status IN ('sent','viewed','accepted','rejected')";
+    const propParams: unknown[] = [];
     if (user.role === "sales_staff" || user.role === "employee") {
-      propWhere += ` AND p.created_by = '${user.id}'`;
+      propParams.push(user.id);
+      propWhere += ` AND p.created_by = $${propParams.length}`;
     }
     const propResult = await db.query(
-      `SELECT COUNT(*) as cnt, SUM(CASE WHEN status='accepted' THEN 1 ELSE 0 END) as won FROM proposals p ${propWhere}`
+      `SELECT COUNT(*) as cnt, SUM(CASE WHEN status='accepted' THEN 1 ELSE 0 END) as won FROM proposals p ${propWhere}`,
+      propParams
     ).catch(() => ({ rows: [{ cnt: "0", won: "0" }] }));
     const { cnt: propCnt, won } = propResult.rows[0] as { cnt: string; won: string | null };
 
