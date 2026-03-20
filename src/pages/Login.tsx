@@ -1,21 +1,41 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import xpsLogo from "@/assets/xps-logo.png";
+import { api } from "@/lib/api";
+import { setUser, type User } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 type AuthMode = "login" | "signup" | "forgot";
 
 const Login = () => {
   const [mode, setMode] = useState<AuthMode>("login");
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    if (mode !== "login") {
+      toast({ title: "Coming soon", description: "Self-service signup is not yet available. Contact your administrator." });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const data = await api.post<{ token: string; user: User }>("/auth/login", { email, password });
+      setUser(data.user, data.token);
+      navigate("/dashboard");
+    } catch (err) {
+      toast({ title: "Login failed", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,13 +89,13 @@ const Login = () => {
             )}
             <div>
               <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
-              <Input id="email" type="email" placeholder="you@xpsxpress.com" className="mt-1 bg-card border-border" />
+              <Input id="email" type="email" placeholder="you@xpsxpress.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 bg-card border-border" />
             </div>
             {mode !== "forgot" && (
               <div>
                 <Label htmlFor="password" className="text-xs text-muted-foreground">Password</Label>
                 <div className="relative mt-1">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" className="bg-card border-border pr-10" />
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-card border-border pr-10" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -88,8 +108,8 @@ const Login = () => {
               </div>
             )}
 
-            <Button variant="gold" className="w-full" size="lg" type="submit">
-              {mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
+            <Button variant="gold" className="w-full" size="lg" type="submit" disabled={isLoading}>
+              {isLoading ? "Signing in..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
             </Button>
           </form>
 

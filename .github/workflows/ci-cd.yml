@@ -33,9 +33,45 @@ jobs:
       - name: Test
         run: npm run test --if-present
 
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: validate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        run: npm run build --if-present
+
+      - name: Run Playwright e2e tests
+        run: npx playwright test
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: validate
+    needs: [validate, e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
