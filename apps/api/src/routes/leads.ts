@@ -143,14 +143,16 @@ leadsRouter.post("/bulk", requireRole("sales_staff", "manager", "owner", "admin"
     const db = getDb();
     const user = req.user!;
     let inserted = 0;
+    let skipped = 0;
     for (const lead of leads) {
       const companyName = String(lead.business_name || lead.company_name || "").trim();
       if (!companyName) continue;
-      await db.query(
+      const result = await db.query(
         `INSERT INTO leads (company_name, contact_name, email, phone, website, vertical, location, stage,
          notes, assigned_to, created_by, score)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-         ON CONFLICT DO NOTHING`,
+         ON CONFLICT (email) WHERE email IS NOT NULL DO NOTHING
+         RETURNING id`,
         [
           companyName,
           lead.owner_name || null,
@@ -165,10 +167,14 @@ leadsRouter.post("/bulk", requireRole("sales_staff", "manager", "owner", "admin"
           user.id,
           typeof lead.score === "number" ? lead.score : null,
         ]
-      ).catch(() => {}); // Silently skip duplicates
-      inserted++;
+      ).catch(() => ({ rows: [] as { id: string }[] }));
+      if ((result as { rows: { id: string }[] }).rows.length > 0) {
+        inserted++;
+      } else {
+        skipped++;
+      }
     }
-    res.json({ inserted, total: leads.length });
+    res.json({ inserted, skipped, total: leads.length });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

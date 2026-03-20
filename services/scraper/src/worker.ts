@@ -116,12 +116,21 @@ async function main(): Promise<void> {
   console.log("[XPS Scraper Worker] Starting...");
   const redis = getRedis();
 
-  // Publish heartbeat every 30s so metrics endpoint can detect active workers
-  setInterval(async () => {
+  // Publish heartbeat every 30s so metrics endpoint can detect active workers.
+  // Store interval ref so we can clear it on SIGTERM/SIGINT.
+  const heartbeatInterval = setInterval(async () => {
     try {
       await redis.set(HEARTBEAT_KEY, new Date().toISOString(), "EX", 60);
     } catch { /* non-fatal */ }
   }, 30_000);
+
+  const shutdown = () => {
+    clearInterval(heartbeatInterval);
+    process.exit(0);
+  };
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
+
   await redis.set(HEARTBEAT_KEY, new Date().toISOString(), "EX", 60).catch(() => {});
 
   while (true) {

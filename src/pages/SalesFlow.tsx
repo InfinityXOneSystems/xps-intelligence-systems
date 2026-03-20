@@ -77,7 +77,7 @@ const SalesFlow = () => {
 
     // Try to load existing analysis
     try {
-      const data = await api.get<{ record: { summary: string; recommended_action: string; script: string; pricing_recommendation: string; proposal_outline: string; follow_up_schedule: FollowUpItem[] } }>(`/sales-flow/${lead.id}`);
+      const data = await api.get<{ record: SalesAnalysis | null }>(`/sales-flow/${lead.id}`);
       if (data.record) setAnalysis(data.record as SalesAnalysis);
     } catch {
       // No existing analysis — user will click Analyze

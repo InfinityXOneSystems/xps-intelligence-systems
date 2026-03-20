@@ -122,21 +122,23 @@ const SalesStaff = () => {
 
   const jobIdRef = useRef(0);
 
-  // Run a single search job
+  // Run a single search job — uses real synchronous scraper
   const runJob = useCallback(
     async (job: SearchJob): Promise<Lead[]> => {
       setJobs((prev) =>
         prev.map((j) => (j.id === job.id ? { ...j, status: "running" } : j))
       );
       try {
-        const resp = await api.post<{ results: Lead[]; error?: string }>("/scrape/search", {
+        const resp = await api.post<{ leads: Lead[]; results?: Lead[]; source?: string; error?: string }>("/scrape/search-sync", {
           city: job.city,
           state: job.state,
           industry: job.industry,
           keyword: job.keyword,
           max_results: maxResults,
         });
-        const results: Lead[] = (resp.results || []).map((r, i) => ({
+        // search-sync returns { leads: [...] }; fallback to results for backward compat
+        const rawLeads = resp.leads ?? resp.results ?? [];
+        const results: Lead[] = rawLeads.map((r, i) => ({
           ...r,
           id: r.id || `${job.id}-${i}`,
         }));
