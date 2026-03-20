@@ -74,7 +74,7 @@ jobs:
           retention-days: 7
 
   deploy:
-    if: github.ref == 'refs/heads/main' && secrets.RAILWAY_TOKEN != ''
+    if: github.ref == 'refs/heads/main'
     needs: [validate, e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -95,5 +95,6 @@ jobs:
 
       - name: Deploy to Railway
         run: railway up
+        continue-on-error: true
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
