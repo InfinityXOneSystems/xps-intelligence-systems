@@ -1,7 +1,7 @@
 import {
   Home, Users, UserSearch, FlaskConical, Mail, FileText,
   BarChart3, BookOpen, Eye, Plug, Settings, Shield, Brain,
-  Building2, Search
+  Building2, Search, Crown
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -31,6 +31,8 @@ const secondaryNav = [
 
 const adminNav = [
   { title: "Admin", url: "/admin", icon: Shield },
+  { title: "Manager", url: "/manager", icon: Users },
+  { title: "Owner Portal", url: "/owner", icon: Crown },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 

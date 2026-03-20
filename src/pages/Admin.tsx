@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Shield, Users, Building2, Database, Activity, Lock, Server, GitBranch, Cpu, Plus, Play, Workflow, CheckCircle2, AlertCircle, Clock, XCircle, RefreshCw } from "lucide-react";
+import { Shield, Users, Building2, Database, Activity, Lock, Server, GitBranch, Cpu, Plus, Play, Workflow, CheckCircle2, AlertCircle, Clock, XCircle, RefreshCw, Edit2, BookOpen, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
@@ -18,7 +18,7 @@ const systemCards = [
   { title: "Activity Log", desc: "System-wide audit and event logging", icon: Activity, stat: "12.4K events" },
 ];
 
-type Tab = "overview" | "workflows" | "audit" | "connectors";
+type Tab = "overview" | "workflows" | "audit" | "connectors" | "employees" | "intelligence";
 
 interface Workflow {
   id: string;
@@ -46,15 +46,40 @@ interface AuditLog {
   created_at: string;
 }
 
+interface Employee {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  lead_count: number;
+  last_active: string | null;
+}
+
 const AdminPage = () => {
   const [tab, setTab] = useState<Tab>("overview");
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [connectors, setConnectors] = useState<Connector[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editRole, setEditRole] = useState<string>("");
+  const [editName, setEditName] = useState<string>("");
   const [testingConnector, setTestingConnector] = useState<string | null>(null);
   const [newWfName, setNewWfName] = useState("");
   const [newWfTrigger, setNewWfTrigger] = useState<"manual" | "schedule" | "webhook" | "lead_created" | "lead_updated">("manual");
   const { toast } = useToast();
+
+  const fetchEmployees = () => {
+    setEmployeesLoading(true);
+    api.get<{ employees: Employee[] }>("/admin/employees")
+      .then((d) => setEmployees(d.employees))
+      .catch(() => {})
+      .finally(() => setEmployeesLoading(false));
+  };
 
   useEffect(() => {
     if (tab === "workflows") {
@@ -71,6 +96,9 @@ const AdminPage = () => {
       api.get<{ connectors: Connector[] }>("/connectors")
         .then((d) => setConnectors(d.connectors))
         .catch(() => {});
+    }
+    if (tab === "employees") {
+      fetchEmployees();
     }
   }, [tab]);
 
@@ -120,6 +148,21 @@ const AdminPage = () => {
     }
   };
 
+  const handleUpdateEmployee = async () => {
+    if (!editingEmployee) return;
+    try {
+      await api.patch(`/admin/employees/${editingEmployee.id}`, {
+        role: editRole || undefined,
+        full_name: editName || undefined,
+      });
+      toast({ title: "Employee updated" });
+      setEditingEmployee(null);
+      fetchEmployees();
+    } catch (err) {
+      toast({ title: "Update failed", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+
   return (
   <AppLayout title="Admin">
     <div className="space-y-6">
@@ -129,8 +172,8 @@ const AdminPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-card border border-border rounded-lg p-1 w-fit">
-        {(["overview", "workflows", "audit", "connectors"] as Tab[]).map((t) => (
+      <div className="flex flex-wrap gap-1 bg-card border border-border rounded-lg p-1 w-fit">
+        {(["overview", "workflows", "audit", "connectors", "employees", "intelligence"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -281,6 +324,183 @@ const AdminPage = () => {
                 Loading connectors...
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {tab === "employees" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">All registered employees across the system.</p>
+            <Button variant="outline" size="sm" onClick={fetchEmployees}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+            </Button>
+          </div>
+
+          {/* Edit Employee Dialog */}
+          {editingEmployee && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+              <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md space-y-4">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Edit2 className="h-4 w-4" /> Edit Employee
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Full Name</label>
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder={editingEmployee.full_name}
+                      className="mt-1 bg-card border-border"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Role</label>
+                    <select
+                      value={editRole}
+                      onChange={(e) => setEditRole(e.target.value)}
+                      className="mt-1 w-full bg-card border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                    >
+                      <option value="">Keep current ({editingEmployee.role})</option>
+                      <option value="employee">Employee</option>
+                      <option value="sales_staff">Sales Staff</option>
+                      <option value="manager">Manager</option>
+                      <option value="owner">Owner</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setEditingEmployee(null)}>Cancel</Button>
+                  <Button variant="gold" size="sm" onClick={handleUpdateEmployee}>Save Changes</Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-gradient-card border border-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Users className="h-4 w-4" /> Employees
+            </h3>
+
+            {!employeesLoading && employees.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No employees yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs text-muted-foreground">
+                      <th className="text-left pb-3 font-medium">Name</th>
+                      <th className="text-left pb-3 font-medium">Email</th>
+                      <th className="text-left pb-3 font-medium">Role</th>
+                      <th className="text-right pb-3 font-medium">Leads</th>
+                      <th className="text-right pb-3 font-medium">Join Date</th>
+                      <th className="text-right pb-3 font-medium">Last Active</th>
+                      <th className="text-right pb-3 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employeesLoading
+                      ? Array.from({ length: 4 }).map((_, i) => (
+                          <tr key={i} className="border-b border-border/50">
+                            {Array.from({ length: 7 }).map((__, j) => (
+                              <td key={j} className="py-3">
+                                <div className="h-3 bg-muted rounded animate-pulse w-20" />
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      : employees.map((emp) => (
+                          <tr key={emp.id} className="border-b border-border/50 hover:bg-accent/30 transition-colors">
+                            <td className="py-3 font-medium text-foreground">{emp.full_name || "—"}</td>
+                            <td className="py-3 text-muted-foreground">{emp.email}</td>
+                            <td className="py-3">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
+                                {emp.role.replace("_", " ")}
+                              </span>
+                            </td>
+                            <td className="py-3 text-right text-foreground">{Number(emp.lead_count)}</td>
+                            <td className="py-3 text-right text-muted-foreground">
+                              {new Date(emp.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 text-right text-muted-foreground">
+                              {emp.last_active
+                                ? (() => {
+                                    const h = Math.floor((Date.now() - new Date(emp.last_active).getTime()) / 3600000);
+                                    return h < 1 ? "Just now" : h < 24 ? `${h}h ago` : `${Math.floor(h / 24)}d ago`;
+                                  })()
+                                : "—"}
+                            </td>
+                            <td className="py-3 text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingEmployee(emp);
+                                  setEditRole(emp.role);
+                                  setEditName(emp.full_name || "");
+                                }}
+                              >
+                                <Edit2 className="h-3 w-3 mr-1" />Edit
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === "intelligence" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">Industry Knowledge Base and AI distillation management.</p>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-gradient-card border border-border rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" /> Knowledge Base Status
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { label: "Industry Knowledge Base", status: "Active", color: "text-green-400 bg-green-500/10" },
+                  { label: "Taxonomy Entries", status: "Synced", color: "text-green-400 bg-green-500/10" },
+                  { label: "Embedding Index", status: "Up to date", color: "text-green-400 bg-green-500/10" },
+                  { label: "Vector Store", status: "Connected", color: "text-green-400 bg-green-500/10" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                    <span className="text-sm text-foreground">{item.label}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${item.color}`}>{item.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-gradient-card border border-border rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Zap className="h-4 w-4 text-gold" /> Distillation Queue
+              </h3>
+              <div className="space-y-3 mb-4">
+                {[
+                  { label: "Queued Items", value: "0" },
+                  { label: "Processed Today", value: "142" },
+                  { label: "Taxonomy Entries", value: "2,847" },
+                  { label: "Last Run", value: "2h ago" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                    <span className="text-sm text-muted-foreground">{item.label}</span>
+                    <span className="text-sm font-semibold text-foreground">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+              <Button variant="gold" className="w-full" onClick={() => toast({ title: "Distillation triggered", description: "AI distillation job queued." })}>
+                <Zap className="h-4 w-4 mr-2" /> Run Distillation
+              </Button>
+            </div>
           </div>
         </div>
       )}

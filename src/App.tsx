@@ -20,6 +20,8 @@ import Knowledge from "./pages/Knowledge";
 import Competition from "./pages/Competition";
 import Connectors from "./pages/Connectors";
 import Admin from "./pages/Admin";
+import Manager from "./pages/Manager";
+import Owner from "./pages/Owner";
 import Settings from "./pages/Settings";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
@@ -50,6 +52,8 @@ const App = () => (
           <Route path="/competition" element={<AuthGuard><Competition /></AuthGuard>} />
           <Route path="/connectors" element={<AuthGuard><Connectors /></AuthGuard>} />
           <Route path="/admin" element={<AuthGuard><Admin /></AuthGuard>} />
+          <Route path="/manager" element={<AuthGuard><Manager /></AuthGuard>} />
+          <Route path="/owner" element={<AuthGuard><Owner /></AuthGuard>} />
           <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
