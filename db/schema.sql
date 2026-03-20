@@ -276,3 +276,110 @@ BEGIN
     EXECUTE format('CREATE TRIGGER set_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at()', t);
   END LOOP;
 END $$;
+
+-- =========================================
+-- SCRAPER RESULTS - Extended
+-- =========================================
+CREATE TABLE IF NOT EXISTS scraped_leads (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  task_id           UUID REFERENCES agent_tasks(id),
+  business_name     TEXT NOT NULL,
+  address           TEXT,
+  city              TEXT,
+  state             TEXT,
+  zip               TEXT,
+  phone             TEXT,
+  website           TEXT,
+  owner_name        TEXT,
+  additional_phone  TEXT,
+  email             TEXT,
+  est_employees     TEXT,
+  est_annual_revenue TEXT,
+  years_in_business TEXT,
+  google_rating     NUMERIC(3,1),
+  facebook_url      TEXT,
+  linkedin_url      TEXT,
+  instagram_url     TEXT,
+  industry          TEXT,
+  specialty         TEXT,
+  keywords          TEXT,
+  score             INTEGER CHECK (score >= 0 AND score <= 100),
+  ai_summary        TEXT,
+  ai_recommendations TEXT,
+  initial_contact_date DATE,
+  follow_up_date    DATE,
+  scraped_date      DATE DEFAULT CURRENT_DATE,
+  notes             TEXT,
+  added_to_crm      BOOLEAN DEFAULT FALSE,
+  created_by        UUID REFERENCES users(id),
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =========================================
+-- INDUSTRY INTELLIGENCE - XPS Taxonomy
+-- =========================================
+CREATE TABLE IF NOT EXISTS xps_taxonomy (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  category        TEXT NOT NULL,  -- 'product', 'technique', 'equipment', 'chemical', 'market_segment'
+  name            TEXT NOT NULL,
+  aliases         TEXT[],
+  description     TEXT,
+  parent_id       UUID REFERENCES xps_taxonomy(id),
+  metadata        JSONB DEFAULT '{}',
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS xps_knowledge_base (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title           TEXT NOT NULL,
+  content         TEXT NOT NULL,
+  category        TEXT,  -- 'product_info', 'technique', 'sales_playbook', 'competitor', 'industry_news'
+  source          TEXT,
+  tags            TEXT[],
+  relevance_score NUMERIC(5,2) DEFAULT 0,
+  view_count      INTEGER DEFAULT 0,
+  created_by      UUID REFERENCES users(id),
+  is_public       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS xps_distillation_queue (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  source_url      TEXT,
+  source_type     TEXT,  -- 'website', 'pdf', 'manual', 'scraper'
+  content         TEXT,
+  status          TEXT DEFAULT 'pending' CHECK (status IN ('pending','processing','completed','failed')),
+  processed_at    TIMESTAMPTZ,
+  knowledge_ids   UUID[],
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =========================================
+-- USER PROFILES - Extended
+-- =========================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS job_title TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS territory TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS specialty TEXT[];
+ALTER TABLE users ADD COLUMN IF NOT EXISTS division TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_complete BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS business_card JSONB DEFAULT '{}';
+
+-- =========================================
+-- AI CALLS & SMS LOG
+-- =========================================
+CREATE TABLE IF NOT EXISTS communication_log (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lead_id         UUID REFERENCES leads(id),
+  user_id         UUID REFERENCES users(id),
+  type            TEXT NOT NULL CHECK (type IN ('email','sms','call','ai_call')),
+  direction       TEXT CHECK (direction IN ('outbound','inbound')),
+  status          TEXT DEFAULT 'pending',
+  content         TEXT,
+  ai_generated    BOOLEAN DEFAULT FALSE,
+  provider        TEXT,
+  external_id     TEXT,
+  sent_at         TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);

@@ -1,7 +1,7 @@
 import {
   Home, Users, UserSearch, FlaskConical, Mail, FileText,
   BarChart3, BookOpen, Eye, Plug, Settings, Shield, Brain,
-  Building2
+  Building2, Search, Crown, Cpu
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -16,6 +16,7 @@ const mainNav = [
   { title: "CRM", url: "/crm", icon: Users },
   { title: "Leads", url: "/leads", icon: UserSearch },
   { title: "AI Assistant", url: "/ai-assistant", icon: Brain },
+  { title: "Scraper", url: "/scraper", icon: Search },
   { title: "Research Lab", url: "/research", icon: FlaskConical },
   { title: "Outreach", url: "/outreach", icon: Mail },
   { title: "Proposals", url: "/proposals", icon: FileText },
@@ -23,6 +24,7 @@ const mainNav = [
 ];
 
 const secondaryNav = [
+  { title: "Intelligence", url: "/intelligence", icon: Cpu },
   { title: "Knowledge Base", url: "/knowledge", icon: BookOpen },
   { title: "Competition", url: "/competition", icon: Eye },
   { title: "Connectors", url: "/connectors", icon: Plug },
@@ -30,6 +32,8 @@ const secondaryNav = [
 
 const adminNav = [
   { title: "Admin", url: "/admin", icon: Shield },
+  { title: "Manager", url: "/manager", icon: Users },
+  { title: "Owner Portal", url: "/owner", icon: Crown },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 

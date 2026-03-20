@@ -16,23 +16,30 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode !== "login") {
-      toast({ title: "Coming soon", description: "Self-service signup is not yet available. Contact your administrator." });
+    if (mode === "forgot") {
+      toast({ title: "Coming soon", description: "Password reset is not yet available. Contact your administrator." });
       return;
     }
     setIsLoading(true);
     try {
-      const data = await api.post<{ token: string; user: User }>("/auth/login", { email, password });
-      setUser(data.user, data.token);
-      navigate("/dashboard");
+      if (mode === "signup") {
+        const data = await api.post<{ token: string; user: User }>("/auth/register", { email, password, full_name: name });
+        setUser(data.user, data.token);
+        navigate("/onboarding");
+      } else {
+        const data = await api.post<{ token: string; user: User }>("/auth/login", { email, password });
+        setUser(data.user, data.token);
+        navigate("/dashboard");
+      }
     } catch (err) {
-      toast({ title: "Login failed", description: (err as Error).message, variant: "destructive" });
+      toast({ title: mode === "signup" ? "Registration failed" : "Login failed", description: (err as Error).message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +91,7 @@ const Login = () => {
             {mode === "signup" && (
               <div>
                 <Label htmlFor="name" className="text-xs text-muted-foreground">Full Name</Label>
-                <Input id="name" placeholder="John Smith" className="mt-1 bg-card border-border" />
+                <Input id="name" placeholder="John Smith" value={name} onChange={(e) => setName(e.target.value)} className="mt-1 bg-card border-border" />
               </div>
             )}
             <div>
@@ -109,7 +116,7 @@ const Login = () => {
             )}
 
             <Button variant="gold" className="w-full" size="lg" type="submit" disabled={isLoading}>
-              {isLoading ? "Signing in..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
+              {isLoading ? (mode === "signup" ? "Creating account..." : "Signing in...") : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
             </Button>
           </form>
 

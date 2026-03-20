@@ -2,6 +2,12 @@ export interface User {
   id: string;
   email: string;
   role: "employee" | "sales_staff" | "manager" | "owner" | "admin";
+  full_name?: string;
+  job_title?: string;
+  territory?: string;
+  specialty?: string;
+  location_id?: string;
+  onboarding_complete?: boolean;
 }
 
 export function getUser(): User | null {
