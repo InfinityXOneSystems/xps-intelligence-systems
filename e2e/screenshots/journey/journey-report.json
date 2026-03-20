@@ -1,0 +1,141 @@
+{
+  "generated_at": "2026-03-20T05:37:21.225Z",
+  "system": "XPS Intelligence - Sales Automation Platform",
+  "summary": {
+    "overall_efficiency": 8.5,
+    "ai_enhancement": 7.1,
+    "friction_score": 2.7,
+    "closing_probability": 7.9,
+    "total_steps_tested": 15
+  },
+  "step_ratings": [
+    {
+      "step": "Landing Page",
+      "efficiency": 9,
+      "aiEnhancement": 5,
+      "friction": 2,
+      "closingProbability": 7,
+      "notes": "Clean landing page, clear CTA to login"
+    },
+    {
+      "step": "Login Page",
+      "efficiency": 9,
+      "aiEnhancement": 5,
+      "friction": 1,
+      "closingProbability": 8,
+      "notes": "Simple login form, sign-up option visible"
+    },
+    {
+      "step": "Registration Form",
+      "efficiency": 8,
+      "aiEnhancement": 5,
+      "friction": 3,
+      "closingProbability": 7,
+      "notes": "Self-service signup available"
+    },
+    {
+      "step": "Onboarding",
+      "efficiency": 8,
+      "aiEnhancement": 6,
+      "friction": 4,
+      "closingProbability": 8,
+      "notes": "Multi-step onboarding guides new sales reps"
+    },
+    {
+      "step": "Dashboard",
+      "efficiency": 8,
+      "aiEnhancement": 7,
+      "friction": 2,
+      "closingProbability": 8,
+      "notes": "Live KPIs, charts, and activity feed"
+    },
+    {
+      "step": "Scraper Tool",
+      "efficiency": 9,
+      "aiEnhancement": 8,
+      "friction": 3,
+      "closingProbability": 9,
+      "notes": "Enterprise scraper with keyword autocomplete, 60-100 results"
+    },
+    {
+      "step": "Leads Page",
+      "efficiency": 8,
+      "aiEnhancement": 7,
+      "friction": 2,
+      "closingProbability": 8,
+      "notes": "Full lead table with search and filtering"
+    },
+    {
+      "step": "AI Assistant",
+      "efficiency": 9,
+      "aiEnhancement": 10,
+      "friction": 2,
+      "closingProbability": 9,
+      "notes": "Live LLM with industry context, quick actions sidebar"
+    },
+    {
+      "step": "Research Lab",
+      "efficiency": 8,
+      "aiEnhancement": 8,
+      "friction": 3,
+      "closingProbability": 7,
+      "notes": "Company research and seed list scraper"
+    },
+    {
+      "step": "Intelligence System",
+      "efficiency": 9,
+      "aiEnhancement": 9,
+      "friction": 4,
+      "closingProbability": 9,
+      "notes": "Industry taxonomy, knowledge base, distillation system"
+    },
+    {
+      "step": "Admin Panel",
+      "efficiency": 9,
+      "aiEnhancement": 8,
+      "friction": 3,
+      "closingProbability": 8,
+      "notes": "Full control: employees, workflows, audit, connectors, intelligence"
+    },
+    {
+      "step": "Manager Portal",
+      "efficiency": 8,
+      "aiEnhancement": 8,
+      "friction": 3,
+      "closingProbability": 8,
+      "notes": "Team analytics, employee performance, lead oversight"
+    },
+    {
+      "step": "Owner Portal",
+      "efficiency": 9,
+      "aiEnhancement": 9,
+      "friction": 3,
+      "closingProbability": 9,
+      "notes": "Interactive simulation, financial projections, system analytics"
+    },
+    {
+      "step": "Settings",
+      "efficiency": 8,
+      "aiEnhancement": 5,
+      "friction": 2,
+      "closingProbability": 6,
+      "notes": "Profile management, notifications, preferences"
+    },
+    {
+      "step": "Connectors Hub",
+      "efficiency": 8,
+      "aiEnhancement": 7,
+      "friction": 3,
+      "closingProbability": 7,
+      "notes": "Live connector status: Railway, Supabase, HubSpot, GitHub"
+    }
+  ],
+  "recommendations": [
+    "AI Assistant integration significantly boosts sales rep productivity",
+    "Scraper tool provides enterprise-grade lead generation with 60-100 results",
+    "Onboarding flow ensures proper setup for each new sales rep",
+    "Role-based portals (Manager/Owner) enable full organization oversight",
+    "Intelligence system creates competitive advantage through industry knowledge",
+    "Real-time analytics eliminates reliance on manual reporting"
+  ]
+}
