@@ -1,0 +1,60 @@
+name: xps-optimize
+
+on:
+  schedule:
+    - cron: "0 8 * * 1" # weekly Monday at 08:00 UTC
+  workflow_dispatch:
+    inputs:
+      run_simulation:
+        description: "Run simulation engine"
+        type: boolean
+        default: true
+      run_scoring:
+        description: "Run lead scoring normalization"
+        type: boolean
+        default: true
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run optimization agent
+        run: node scripts/agents/optimize.mjs
+        env:
+          RUN_SIMULATION: ${{ github.event.inputs.run_simulation || 'true' }}
+          RUN_SCORING: ${{ github.event.inputs.run_scoring || 'true' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CI: true
+
+      - name: Upload optimization report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optimize-report-${{ github.run_number }}
+          path: reports/optimize/
+          retention-days: 30
+
+      - name: Commit reports
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "XPS Intelligence Bot"
+          git config user.email "bot@xps-intelligence.com"
+          git add reports/ || true
+          git diff --staged --quiet || git commit -m "chore: optimization report [skip ci]"
+          git push || true

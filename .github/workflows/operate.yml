@@ -1,0 +1,80 @@
+name: xps-operate
+
+on:
+  schedule:
+    - cron: "0 10 * * 1-5" # weekdays at 10:00 UTC
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "App URL to operate against"
+        required: false
+        default: "http://localhost:4173"
+      record_video:
+        description: "Record browser video"
+        type: boolean
+        default: true
+
+jobs:
+  operate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        run: npm run build:frontend
+
+      - name: Run system operation agent (headless Playwright)
+        run: node scripts/agents/operate.mjs
+        env:
+          CI: true
+          BASE_URL: ${{ github.event.inputs.base_url || 'http://localhost:4173' }}
+          RECORD_VIDEO: ${{ github.event.inputs.record_video || 'true' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Upload operation screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: operate-screenshots-${{ github.run_number }}
+          path: reports/operate/screenshots/
+          retention-days: 30
+
+      - name: Upload operation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: operate-report-${{ github.run_number }}
+          path: reports/operate/
+          retention-days: 30
+
+      - name: Update GitHub Pages dashboard
+        if: github.ref == 'refs/heads/main'
+        run: node scripts/agents/update-dashboard.mjs
+        env:
+          CI: true
+
+      - name: Commit dashboard update
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "XPS Intelligence Bot"
+          git config user.email "bot@xps-intelligence.com"
+          git add docs/dashboard/ reports/ || true
+          git diff --staged --quiet || git commit -m "chore: operation report + dashboard update [skip ci]"
+          git push || true

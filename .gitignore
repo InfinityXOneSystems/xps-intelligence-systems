@@ -19,3 +19,11 @@ docker-data/
 postgres_data/
 redis_data/
 test-results/
+reports/ingest/*.json
+reports/optimize/*.json
+playwright-report/
+e2e/screenshots/journey/
+e2e/screenshots/scraper/
+reports/competition/*.json
+reports/operate/*.json
+reports/zero-state/*.json

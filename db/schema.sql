@@ -383,3 +383,33 @@ CREATE TABLE IF NOT EXISTS communication_log (
   sent_at         TIMESTAMPTZ,
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- =========================================
+-- TELEMETRY & OPTIMIZATION
+-- =========================================
+CREATE TABLE IF NOT EXISTS telemetry_events (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id    TEXT,
+  user_id       UUID REFERENCES users(id),
+  event_type    TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id   TEXT,
+  details       JSONB DEFAULT '{}',
+  duration_ms   INTEGER,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_telemetry_event_type ON telemetry_events (event_type);
+CREATE INDEX IF NOT EXISTS idx_telemetry_created    ON telemetry_events (created_at);
+
+CREATE TABLE IF NOT EXISTS optimization_reports (
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  run_at           TIMESTAMPTZ DEFAULT NOW(),
+  efficiency_score NUMERIC(4,2),
+  friction_score   NUMERIC(4,2),
+  bottlenecks      JSONB DEFAULT '[]',
+  recommendations  JSONB DEFAULT '[]',
+  simulation       JSONB DEFAULT '{}',
+  raw_report       JSONB DEFAULT '{}',
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+);

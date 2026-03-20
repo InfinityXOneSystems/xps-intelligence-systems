@@ -1,0 +1,97 @@
+name: xps-validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm install
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
+      - name: Build frontend
+        run: npm run build:frontend
+
+  validate-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm install
+
+      - name: Typecheck API
+        run: npm run typecheck --workspace apps/api --if-present
+
+      - name: Run API tests
+        run: npm run test --workspace apps/api --if-present
+
+  validate-agents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm install
+
+      - name: Validate agent scripts
+        run: |
+          node --check scripts/agents/ingest.mjs
+          node --check scripts/agents/optimize.mjs
+          node --check scripts/agents/operate.mjs
+          node --check scripts/agents/zero-state.mjs
+          node --check scripts/agents/competition-watch.mjs
+          node --check scripts/agents/update-dashboard.mjs
+        continue-on-error: false
+
+      - name: Run agent unit tests
+        run: |
+          node scripts/agents/ingest.mjs --dry-run
+          node scripts/agents/competition-watch.mjs --dry-run
+          node scripts/agents/update-dashboard.mjs
+        env:
+          CI: true
+          DRY_RUN: true

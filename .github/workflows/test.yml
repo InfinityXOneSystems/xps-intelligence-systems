@@ -1,16 +1,16 @@
-﻿name: xps-ci-cd
+name: xps-test
 
 on:
   push:
-    branches: [main]
+    branches: [main, "copilot/**", "feature/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 jobs:
-  validate:
+  unit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -26,21 +26,18 @@ jobs:
       - name: Install
         run: npm install
 
-      - name: Lint
-        run: npm run lint --if-present
-
       - name: Typecheck
         run: npm run typecheck --if-present
 
-      - name: Test
+      - name: Unit tests
         run: npm run test --if-present
 
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: validate
+    needs: unit
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,35 +63,17 @@ jobs:
           CI: true
 
       - name: Upload Playwright report
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ github.run_number }}
           path: playwright-report/
-          retention-days: 7
+          retention-days: 14
 
-  deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: [validate, e2e]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 20
-          cache: npm
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy to Railway
-        run: railway up
-        continue-on-error: true
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          name: e2e-screenshots-${{ github.run_number }}
+          path: e2e/screenshots/
+          retention-days: 14
