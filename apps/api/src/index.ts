@@ -11,6 +11,8 @@ import { authRouter } from "./routes/auth.js";
 import { auditRouter } from "./routes/audit.js";
 import { healthRouter } from "./routes/health.js";
 import { connectorsRouter } from "./routes/connectors.js";
+import { analyticsRouter } from "./routes/analytics.js";
+import { profileRouter } from "./routes/profile.js";
 
 const app = express();
 const PORT = process.env.API_PORT || 4000;
@@ -48,6 +50,8 @@ app.use("/api/agents", agentsRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/connectors", connectorsRouter);
+app.use("/api/analytics", analyticsRouter);
+app.use("/api/profile", profileRouter);
 
 // Global error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
