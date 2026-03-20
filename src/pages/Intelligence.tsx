@@ -72,6 +72,7 @@ function authHeaders(token: string | null) {
 
 export default function Intelligence() {
   const { user } = useAuth();
+  const token = typeof window !== "undefined" ? localStorage.getItem("xps_token") : null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
