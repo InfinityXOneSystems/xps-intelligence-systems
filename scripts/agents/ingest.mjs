@@ -26,9 +26,10 @@ const DRY_RUN = process.env.DRY_RUN === "true" || process.argv.includes("--dry-r
 const DB_URL  = process.env.DATABASE_URL;
 
 // ---------------------------------------------------------------------------
-// Industry keyword database
+// Industry keyword database (long-tail + buyer intent)
 // ---------------------------------------------------------------------------
 const INDUSTRY_KEYWORDS = [
+  // Core services
   "epoxy flooring",
   "decorative concrete",
   "polished concrete",
@@ -39,10 +40,70 @@ const INDUSTRY_KEYWORDS = [
   "concrete resurfacing",
   "floor grinding",
   "industrial flooring",
+  // Long-tail + buyer intent
+  "epoxy floor contractor near me",
+  "commercial epoxy installer",
+  "warehouse floor coating contractor",
+  "concrete floor restoration",
+  "decorative concrete driveway",
+  "polished concrete showroom",
+  "garage epoxy quote",
+  "floor coating estimate Florida",
+  "concrete sealing contractor",
+  "epoxy floor repair service",
+  // Target buyer segments
+  "property manager flooring upgrade",
+  "warehouse manager floor safety",
+  "franchise owner floor renovation",
+  "commercial facility flooring",
+  "restaurant kitchen floor coating",
 ];
 
 // ---------------------------------------------------------------------------
-// Seed lead data (real-world representative data for the target industry)
+// Florida Master Seed Database
+// All major Florida cities + counties (200-mile radius from XPS locations)
+// ---------------------------------------------------------------------------
+const FLORIDA_CITIES = [
+  // Treasure Coast / Southeast FL (primary territory)
+  "Port St. Lucie, FL", "Stuart, FL", "Fort Pierce, FL", "Vero Beach, FL",
+  "Hobe Sound, FL", "Jensen Beach, FL", "Palm City, FL", "Sebastian, FL",
+  "Okeechobee, FL",
+  // Palm Beach County
+  "West Palm Beach, FL", "Boca Raton, FL", "Delray Beach, FL", "Boynton Beach, FL",
+  "Lake Worth, FL", "Wellington, FL", "Palm Beach Gardens, FL", "Jupiter, FL",
+  "Riviera Beach, FL", "Greenacres, FL", "Belle Glade, FL",
+  // Broward County
+  "Fort Lauderdale, FL", "Hollywood, FL", "Miramar, FL", "Pembroke Pines, FL",
+  "Coral Springs, FL", "Pompano Beach, FL", "Deerfield Beach, FL", "Sunrise, FL",
+  "Plantation, FL", "Davie, FL", "Weston, FL", "Lauderhill, FL",
+  // Miami-Dade County
+  "Miami, FL", "Hialeah, FL", "Coral Gables, FL", "Doral, FL",
+  "Homestead, FL", "North Miami, FL", "Miami Gardens, FL", "Miami Beach, FL",
+  // Southwest FL
+  "Fort Myers, FL", "Cape Coral, FL", "Naples, FL", "Bonita Springs, FL",
+  "Marco Island, FL", "Estero, FL", "Lehigh Acres, FL", "Immokalee, FL",
+  "Golden Gate, FL", "Punta Gorda, FL", "Port Charlotte, FL",
+  // Tampa Bay / Sarasota
+  "Tampa, FL", "St. Petersburg, FL", "Clearwater, FL", "Brandon, FL",
+  "Sarasota, FL", "Bradenton, FL", "Lakeland, FL", "Largo, FL",
+  "Pinellas Park, FL", "Dunedin, FL", "New Port Richey, FL",
+  "Spring Hill, FL", "Venice, FL", "North Port, FL",
+  // Central FL (Orlando area)
+  "Orlando, FL", "Kissimmee, FL", "Sanford, FL", "Deltona, FL",
+  "Daytona Beach, FL", "Palm Bay, FL", "Melbourne, FL", "Titusville, FL",
+  "Ocala, FL", "Gainesville, FL", "Leesburg, FL", "The Villages, FL",
+  "Clermont, FL", "Oviedo, FL", "Apopka, FL", "Altamonte Springs, FL",
+  // Northeast FL
+  "Jacksonville, FL", "St. Augustine, FL", "Palatka, FL", "Orange Park, FL",
+  "Ponte Vedra Beach, FL", "Fernandina Beach, FL", "Callahan, FL",
+  // Panhandle / North FL
+  "Tallahassee, FL", "Pensacola, FL", "Panama City, FL", "Destin, FL",
+  "Fort Walton Beach, FL", "Niceville, FL", "Crestview, FL",
+  "Marianna, FL", "Chipley, FL",
+];
+
+// ---------------------------------------------------------------------------
+// Seed lead data (representative data for the target industry)
 // ---------------------------------------------------------------------------
 const SEED_DATA = {
   "Port St. Lucie, FL": [
@@ -68,6 +129,70 @@ const SEED_DATA = {
     { company_name: "Sunrise Epoxy Floors",             phone: "(772) 555-0302", website: "sunriseepoxy.com",              vertical: "Epoxy Contractors",        score: 70 },
     { company_name: "Treasure Coast Commercial Floors", phone: "(772) 555-0303", website: "tccommercialfloors.com",        vertical: "Commercial Flooring",      score: 75 },
   ],
+  "West Palm Beach, FL": [
+    { company_name: "Palm Beach Epoxy Systems",         phone: "(561) 555-0401", website: "pbepoxysystems.com",            vertical: "Epoxy Contractors",        score: 84 },
+    { company_name: "Royal Palm Floor Coatings",        phone: "(561) 555-0402",                                            vertical: "Concrete Coatings",        score: 73 },
+    { company_name: "South FL Concrete Designs",        phone: "(561) 555-0403", website: "southflconcrete.com",           vertical: "Decorative Concrete",      score: 78 },
+    { company_name: "Lake Worth Polished Floors",       phone: "(561) 555-0404",                                            vertical: "Polished Concrete",        score: 65 },
+  ],
+  "Boca Raton, FL": [
+    { company_name: "Boca Elite Floor Coatings",        phone: "(561) 555-0501", website: "bocafloors.com",                vertical: "Premium Epoxy",            score: 89 },
+    { company_name: "Palm Beach Decorative Concrete",   phone: "(561) 555-0502", website: "pbdecorativeconcrete.com",      vertical: "Decorative Concrete",      score: 82 },
+    { company_name: "Luxury Garage Coatings FL",        phone: "(561) 555-0503",                                            vertical: "Garage Floor Coating",     score: 77 },
+  ],
+  "Fort Lauderdale, FL": [
+    { company_name: "Broward Epoxy Pros",               phone: "(954) 555-0601", website: "browardepoxy.com",              vertical: "Epoxy Contractors",        score: 83 },
+    { company_name: "South FL Industrial Flooring",     phone: "(954) 555-0602", website: "sflindustrial.com",             vertical: "Industrial Flooring",      score: 79 },
+    { company_name: "Coastal Concrete Coatings FL",     phone: "(954) 555-0603",                                            vertical: "Concrete Coatings",        score: 71 },
+    { company_name: "Fort Lauderdale Metallic Floors",  phone: "(954) 555-0604", website: "fllmetallicfloors.com",         vertical: "Metallic Epoxy",           score: 86 },
+  ],
+  "Miami, FL": [
+    { company_name: "Miami Epoxy Masters",              phone: "(305) 555-0701", website: "miamiepoxymaster.com",          vertical: "Epoxy Contractors",        score: 87 },
+    { company_name: "Dade County Floor Solutions",      phone: "(305) 555-0702", website: "dadecountyfloors.com",          vertical: "Commercial Flooring",      score: 80 },
+    { company_name: "South Beach Concrete Design",      phone: "(305) 555-0703", website: "sbconcretedesign.com",          vertical: "Decorative Concrete",      score: 84 },
+    { company_name: "Miami Industrial Coatings",        phone: "(305) 555-0704",                                            vertical: "Industrial Flooring",      score: 76 },
+    { company_name: "Doral Warehouse Flooring",         phone: "(305) 555-0705", website: "doralwarehouses.com",           vertical: "Warehouse Flooring",       score: 81 },
+  ],
+  "Fort Myers, FL": [
+    { company_name: "Lee County Epoxy Systems",         phone: "(239) 555-0801", website: "leecountyepoxy.com",            vertical: "Epoxy Contractors",        score: 76 },
+    { company_name: "SW Florida Concrete Coatings",     phone: "(239) 555-0802",                                            vertical: "Concrete Coatings",        score: 69 },
+    { company_name: "Cape Coral Floor Pros",            phone: "(239) 555-0803", website: "capecoralfloors.com",           vertical: "Garage Floor Coating",     score: 72 },
+  ],
+  "Naples, FL": [
+    { company_name: "Naples Premier Epoxy",             phone: "(239) 555-0901", website: "naplespremierepoxy.com",        vertical: "Premium Epoxy",            score: 91 },
+    { company_name: "Collier County Concrete Design",   phone: "(239) 555-0902", website: "collierconcrete.com",           vertical: "Decorative Concrete",      score: 85 },
+    { company_name: "Gulf Coast Polished Floors",       phone: "(239) 555-0903",                                            vertical: "Polished Concrete",        score: 79 },
+  ],
+  "Tampa, FL": [
+    { company_name: "Tampa Bay Epoxy Solutions",        phone: "(813) 555-1001", website: "tampabayepoxy.com",             vertical: "Epoxy Contractors",        score: 86 },
+    { company_name: "Hillsborough Industrial Floors",   phone: "(813) 555-1002", website: "hillsboroughfloors.com",        vertical: "Industrial Flooring",      score: 81 },
+    { company_name: "Brandon Floor Coatings",           phone: "(813) 555-1003",                                            vertical: "Concrete Coatings",        score: 70 },
+    { company_name: "South Tampa Decorative Concrete",  phone: "(813) 555-1004", website: "southtampaconcrete.com",        vertical: "Decorative Concrete",      score: 77 },
+  ],
+  "Sarasota, FL": [
+    { company_name: "Sarasota Epoxy & Coatings",        phone: "(941) 555-1101", website: "sarasotaepoxy.com",             vertical: "Epoxy Contractors",        score: 80 },
+    { company_name: "Gulf View Polished Concrete",      phone: "(941) 555-1102",                                            vertical: "Polished Concrete",        score: 74 },
+    { company_name: "Venice Floor Systems",             phone: "(941) 555-1103", website: "venicefloors.com",              vertical: "Concrete Coatings",        score: 68 },
+  ],
+  "Orlando, FL": [
+    { company_name: "Orlando Epoxy Experts",            phone: "(407) 555-1201", website: "orlandoepoxy.com",              vertical: "Epoxy Contractors",        score: 83 },
+    { company_name: "Central FL Industrial Flooring",   phone: "(407) 555-1202", website: "cflindustrialfloors.com",       vertical: "Industrial Flooring",      score: 78 },
+    { company_name: "Theme Park Concrete Coatings",     phone: "(407) 555-1203",                                            vertical: "Commercial Flooring",      score: 72 },
+    { company_name: "Kissimmee Floor Solutions",        phone: "(407) 555-1204", website: "kissimmeefloors.com",           vertical: "Concrete Coatings",        score: 67 },
+  ],
+  "Jacksonville, FL": [
+    { company_name: "Jacksonville Epoxy Masters",       phone: "(904) 555-1301", website: "jaxepoxymaster.com",            vertical: "Epoxy Contractors",        score: 81 },
+    { company_name: "Duval Industrial Coatings",        phone: "(904) 555-1302", website: "duvalcoatings.com",             vertical: "Industrial Flooring",      score: 76 },
+    { company_name: "NE Florida Concrete Design",       phone: "(904) 555-1303",                                            vertical: "Decorative Concrete",      score: 69 },
+  ],
+  "Tallahassee, FL": [
+    { company_name: "Capital City Floor Coatings",      phone: "(850) 555-1401", website: "tallahasseeflooring.com",       vertical: "Concrete Coatings",        score: 73 },
+    { company_name: "Panhandle Epoxy Systems",          phone: "(850) 555-1402",                                            vertical: "Epoxy Contractors",        score: 65 },
+  ],
+  "Pensacola, FL": [
+    { company_name: "Pensacola Concrete Coatings",      phone: "(850) 555-1501", website: "pensacolacoatings.com",         vertical: "Concrete Coatings",        score: 71 },
+    { company_name: "Gulf Breeze Epoxy Floors",         phone: "(850) 555-1502",                                            vertical: "Epoxy Contractors",        score: 64 },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -79,7 +204,7 @@ function scoreCompany(company) {
   if (company.website) score = Math.min(100, score + 5);
   // Boost if phone present
   if (company.phone) score = Math.min(100, score + 3);
-  // Normalise to 0–100
+  // Normalize to 0–100
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
@@ -88,14 +213,23 @@ function buildLeads(city, keyword) {
   const cityKey = Object.keys(SEED_DATA).find(
     (k) => k.toLowerCase().includes(city.toLowerCase().split(",")[0].toLowerCase())
   );
-  const base = cityKey ? SEED_DATA[cityKey] : SEED_DATA["Port St. Lucie, FL"];
 
-  return base.slice(0, MAX).map((c, i) => ({
+  // If ALL_CITIES mode requested (no specific city), pull from every city
+  const ALL_CITIES = process.env.ALL_CITIES === "true";
+
+  let entries;
+  if (ALL_CITIES) {
+    entries = Object.values(SEED_DATA).flat();
+  } else {
+    entries = cityKey ? SEED_DATA[cityKey] : SEED_DATA["Port St. Lucie, FL"];
+  }
+
+  return entries.slice(0, MAX).map((c, i) => ({
     id:           `ingest-${Date.now()}-${i}`,
     company_name: c.company_name,
     phone:        c.phone ?? null,
     website:      c.website ?? null,
-    location:     city,
+    location:     ALL_CITIES ? c.location ?? city : city,
     vertical:     c.vertical,
     source:       "ingest-agent",
     keyword,
@@ -103,6 +237,9 @@ function buildLeads(city, keyword) {
     ingested_at:  new Date().toISOString(),
   }));
 }
+
+/** Returns count of cities in the Florida master seed database */
+function getFloridaCityCount() { return FLORIDA_CITIES.length; }
 
 // ---------------------------------------------------------------------------
 // Intelligence enrichment via Groq (when API key available)
@@ -218,10 +355,12 @@ async function main() {
   console.log("=".repeat(60));
   console.log("XPS INTELLIGENCE – DATA INGESTION AGENT");
   console.log("=".repeat(60));
-  console.log(`City:       ${CITY}`);
-  console.log(`Keyword:    ${KEYWORD}`);
-  console.log(`Max:        ${MAX}`);
-  console.log(`Dry run:    ${DRY_RUN}`);
+  console.log(`City:            ${CITY}`);
+  console.log(`Keyword:         ${KEYWORD}`);
+  console.log(`Max:             ${MAX}`);
+  console.log(`Dry run:         ${DRY_RUN}`);
+  console.log(`Florida cities:  ${getFloridaCityCount()} in master seed DB`);
+  console.log(`Keywords:        ${INDUSTRY_KEYWORDS.length} (incl. long-tail + buyer intent)`);
   console.log("=".repeat(60));
 
   const startTime = Date.now();
@@ -241,18 +380,24 @@ async function main() {
   // 4. Write report
   const report = {
     agent:        "xps-ingest",
-    version:      "1.0.0",
+    version:      "2.0.0",
     run_at:       new Date().toISOString(),
     dry_run:      DRY_RUN,
     config:       { city: CITY, keyword: KEYWORD, max_results: MAX },
     telemetry: {
-      leads_found:   leads.length,
+      leads_found:    leads.length,
       leads_enriched: enrichedLeads.filter((l) => l.intelligence).length,
-      db_inserted:   dbCount,
-      elapsed_ms:    elapsed,
+      db_inserted:    dbCount,
+      elapsed_ms:     elapsed,
     },
-    leads: enrichedLeads,
+    master_seed: {
+      florida_cities:    getFloridaCityCount(),
+      seeded_cities:     Object.keys(SEED_DATA).length,
+      keywords_available: INDUSTRY_KEYWORDS.length,
+    },
+    leads:              enrichedLeads,
     keywords_available: INDUSTRY_KEYWORDS,
+    florida_cities:     FLORIDA_CITIES,
   };
 
   const reportDir = "reports/ingest";

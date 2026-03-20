@@ -24,7 +24,7 @@ telemetryRouter.get("/scoring", requireRole("manager", "owner", "admin"), async 
           COUNT(*) FILTER (WHERE score < 50)             AS low_score
         FROM leads WHERE deleted_at IS NULL
       `).catch(() => ({
-        rows: [{ total_leads: "0", avg_score: 0, out_of_range: "0", high_score: "0", mid_score: "0", low_score: "0" }],
+        rows: [{ total_leads: "0", avg_score: "0", out_of_range: "0", high_score: "0", mid_score: "0", low_score: "0" }],
       })),
 
       db.query(`
@@ -36,7 +36,7 @@ telemetryRouter.get("/scoring", requireRole("manager", "owner", "admin"), async 
         FROM agent_tasks
         WHERE created_at > NOW() - INTERVAL '7 days'
       `).catch(() => ({
-        rows: [{ total_tasks: "0", completed: "0", failed: "0", avg_duration_ms: 0 }],
+        rows: [{ total_tasks: "0", completed: "0", failed: "0", avg_duration_ms: "0" }],
       })),
 
       db.query(`
@@ -51,11 +51,11 @@ telemetryRouter.get("/scoring", requireRole("manager", "owner", "admin"), async 
     ]);
 
     const ls = leadScores.rows[0] as {
-      total_leads: string; avg_score: number; out_of_range: string;
+      total_leads: string; avg_score: string; out_of_range: string;
       high_score: string; mid_score: string; low_score: string;
     };
     const ws = workflowStats.rows[0] as {
-      total_tasks: string; completed: string; failed: string; avg_duration_ms: number;
+      total_tasks: string; completed: string; failed: string; avg_duration_ms: string;
     };
     const ps = proposalStats.rows[0] as { sent: string; won: string; lost: string };
 
@@ -80,7 +80,7 @@ telemetryRouter.get("/scoring", requireRole("manager", "owner", "admin"), async 
     res.json({
       leads: {
         total:        parseInt(ls.total_leads),
-        avg_score:    ls.avg_score,
+        avg_score:    parseInt(ls.avg_score),
         out_of_range: parseInt(ls.out_of_range),
         distribution: {
           high: parseInt(ls.high_score),
@@ -93,7 +93,7 @@ telemetryRouter.get("/scoring", requireRole("manager", "owner", "admin"), async 
         completed:      parseInt(ws.completed),
         failed:         parseInt(ws.failed),
         failure_rate:   failureRate,
-        avg_duration_ms: ws.avg_duration_ms,
+        avg_duration_ms: parseInt(ws.avg_duration_ms),
       },
       proposals: {
         sent:       parseInt(ps.sent),

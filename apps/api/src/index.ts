@@ -18,6 +18,7 @@ import { ownerRouter } from "./routes/owner.js";
 import { adminRouter } from "./routes/admin.js";
 import { intelligenceRouter } from "./routes/intelligence.js";
 import { telemetryRouter } from "./routes/telemetry.js";
+import { competeRouter } from "./routes/compete.js";
 
 const app = express();
 const PORT = process.env.API_PORT || 4000;
@@ -62,6 +63,7 @@ app.use("/api/owner", ownerRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/intelligence", intelligenceRouter);
 app.use("/api/telemetry", telemetryRouter);
+app.use("/api/compete", competeRouter);
 
 // Global error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

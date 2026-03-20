@@ -78,11 +78,20 @@ jobs:
         run: npm install
 
       - name: Validate agent scripts
-        run: node --check scripts/agents/ingest.mjs && node --check scripts/agents/optimize.mjs
+        run: |
+          node --check scripts/agents/ingest.mjs
+          node --check scripts/agents/optimize.mjs
+          node --check scripts/agents/operate.mjs
+          node --check scripts/agents/zero-state.mjs
+          node --check scripts/agents/competition-watch.mjs
+          node --check scripts/agents/update-dashboard.mjs
         continue-on-error: false
 
       - name: Run agent unit tests
-        run: node scripts/agents/ingest.mjs --dry-run
+        run: |
+          node scripts/agents/ingest.mjs --dry-run
+          node scripts/agents/competition-watch.mjs --dry-run
+          node scripts/agents/update-dashboard.mjs
         env:
           CI: true
           DRY_RUN: true
