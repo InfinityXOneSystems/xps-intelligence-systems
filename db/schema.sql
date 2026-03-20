@@ -74,6 +74,15 @@ CREATE INDEX IF NOT EXISTS leads_assigned_idx ON leads(assigned_to) WHERE delete
 CREATE INDEX IF NOT EXISTS leads_location_idx ON leads(location_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS leads_email_idx ON leads(email) WHERE email IS NOT NULL;
 CREATE INDEX IF NOT EXISTS leads_search_idx ON leads USING gin(to_tsvector('english', company_name || ' ' || COALESCE(contact_name,'')));
+-- Extended RAG search index: covers vertical and notes for intelligence queries
+CREATE INDEX IF NOT EXISTS leads_rag_idx ON leads USING gin(
+  to_tsvector('english',
+    company_name || ' ' ||
+    COALESCE(contact_name, '') || ' ' ||
+    COALESCE(vertical, '') || ' ' ||
+    COALESCE(notes, '')
+  )
+) WHERE deleted_at IS NULL;
 
 -- =========================================
 -- CRM - ACTIVITIES & OUTREACH

@@ -149,7 +149,7 @@
       </div>
       <div class="kpi">
         <div class="kpi-label">Leads Ingested</div>
-        <div class="kpi-value">N/A</div>
+        <div class="kpi-value">10</div>
         <div class="kpi-sub">last ingest cycle</div>
       </div>
       <div class="kpi gold-kpi">
@@ -159,8 +159,72 @@
       </div>
       <div class="kpi">
         <div class="kpi-label">Competitors Tracked</div>
-        <div class="kpi-value">N/A</div>
+        <div class="kpi-value">7</div>
         <div class="kpi-sub">competition watch</div>
+      </div>
+    </div>
+
+    <div class="section-title">LLM Intelligence System</div>
+    <div class="kpi-grid">
+      <div class="kpi gold-kpi">
+        <div class="kpi-label">RAG Queries Run</div>
+        <div class="kpi-value">2</div>
+        <div class="kpi-sub">last RAG session</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Knowledge Base Docs</div>
+        <div class="kpi-value">18</div>
+        <div class="kpi-sub">domain + scraped leads</div>
+      </div>
+      <div class="kpi green-kpi">
+        <div class="kpi-label">Companies Profiled</div>
+        <div class="kpi-value">10</div>
+        <div class="kpi-sub">intelligence generated</div>
+      </div>
+      <div class="kpi gold-kpi">
+        <div class="kpi-label">Total Opportunity</div>
+        <div class="kpi-value" style="font-size:1.4rem">$155,160</div>
+        <div class="kpi-sub">estimated pipeline value</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg Lead Score</div>
+        <div class="kpi-value">84</div>
+        <div class="kpi-sub">out of 100</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">LLM Model</div>
+        <div class="kpi-value" style="font-size:0.85rem">llama-3.3-70b-versatile</div>
+        <div class="kpi-sub">Groq inference</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--gold);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold);margin-bottom:0.75rem;font-weight:700">RAG API Endpoints</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0.75rem;font-size:0.8rem;">
+        
+          <div style="background:#111;border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <code style="color:var(--gold);font-size:0.75rem">POST /api/intelligence/rag</code>
+            <div style="color:var(--muted);margin-top:4px">Semantic Q&A – ask about contractors, pricing, territory</div>
+          </div>
+        
+          <div style="background:#111;border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <code style="color:var(--gold);font-size:0.75rem">POST /api/intelligence/company</code>
+            <div style="color:var(--muted);margin-top:4px">Generate full company intelligence profile + pitch</div>
+          </div>
+        
+          <div style="background:#111;border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <code style="color:var(--gold);font-size:0.75rem">GET  /api/intelligence/kb</code>
+            <div style="color:var(--muted);margin-top:4px">Retrieve knowledge base articles</div>
+          </div>
+        
+          <div style="background:#111;border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <code style="color:var(--gold);font-size:0.75rem">POST /api/ai/invoke</code>
+            <div style="color:var(--muted);margin-top:4px">Direct Groq/Ollama LLM invocation</div>
+          </div>
+        
+      </div>
+      <div style="margin-top:1rem;font-size:0.75rem;color:var(--muted);">
+        Example queries: "Who are the best epoxy contractors in Broward?" · "What should I sell this company?" · "What's their weakness?"
       </div>
     </div>
 
@@ -178,7 +242,7 @@
             <td>xps-ingest</td>
             <td>Daily 06:00 UTC</td>
             <td><span class="pill pill-green">Active</span></td>
-            <td>pending</td>
+            <td>2026-03-20</td>
           </tr>
           <tr>
             <td>xps-operate</td>
@@ -191,6 +255,18 @@
             <td>Weekly Mon 08:00 UTC</td>
             <td><span class="pill pill-green">Active</span></td>
             <td>pending</td>
+          </tr>
+          <tr>
+            <td>xps-rag</td>
+            <td>On demand / API</td>
+            <td><span class="pill pill-green">Active</span></td>
+            <td>2026-03-20</td>
+          </tr>
+          <tr>
+            <td>xps-company-intel</td>
+            <td>On demand / API</td>
+            <td><span class="pill pill-green">Active</span></td>
+            <td>2026-03-20</td>
           </tr>
           <tr>
             <td>xps-validate</td>
@@ -234,7 +310,7 @@
           <tr>
             <td>PolyCoat Pro</td>
             <td>Contractor</td>
-            <td>SE FL</td>
+            <td>Southeast FL</td>
             <td><span class="pill pill-red">high</span></td>
             <td>budget</td>
           </tr>
@@ -253,7 +329,7 @@
             <td>budget</td>
           </tr>
           <tr>
-            <td>GrindTech Ind.</td>
+            <td>GrindTech Industries</td>
             <td>Manufacturer</td>
             <td>National</td>
             <td><span class="pill pill-green">low</span></td>
@@ -262,9 +338,23 @@
           <tr>
             <td>SurfacePro Coatings</td>
             <td>Contractor</td>
-            <td>SW FL</td>
+            <td>Southwest FL</td>
             <td><span class="pill pill-gold">medium</span></td>
             <td>budget</td>
+          </tr>
+          <tr>
+            <td>Treasure Coast Concrete</td>
+            <td>Contractor</td>
+            <td>Treasure Coast FL</td>
+            <td><span class="pill pill-gold">medium</span></td>
+            <td>mid-range</td>
+          </tr>
+          <tr>
+            <td>ArmorCote Florida</td>
+            <td>Contractor</td>
+            <td>North FL</td>
+            <td><span class="pill pill-green">low</span></td>
+            <td>mid-range</td>
           </tr>
         </tbody>
       </table>
@@ -320,6 +410,7 @@
 
   <footer class="footer">
     <span>XPS Intelligence Systems · Autonomous AI Operating Platform</span>
+    <span class="update-time">Auto-refresh every 5 minutes · Last updated: 2026-03-20 08:23:19 UTC</span>
     <span class="update-time">Auto-refresh every 5 minutes · Last updated: 2026-03-20 10:33:45 UTC</span>
   </footer>
 </body>

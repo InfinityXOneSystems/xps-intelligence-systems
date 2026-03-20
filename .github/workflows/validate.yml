@@ -85,12 +85,16 @@ jobs:
           node --check scripts/agents/zero-state.mjs
           node --check scripts/agents/competition-watch.mjs
           node --check scripts/agents/update-dashboard.mjs
+          node --check scripts/agents/rag.mjs
+          node --check scripts/agents/company-intelligence.mjs
         continue-on-error: false
 
       - name: Run agent unit tests
         run: |
           node scripts/agents/ingest.mjs --dry-run
           node scripts/agents/competition-watch.mjs --dry-run
+          node scripts/agents/rag.mjs --dry-run
+          node scripts/agents/company-intelligence.mjs --dry-run
           node scripts/agents/update-dashboard.mjs
         env:
           CI: true

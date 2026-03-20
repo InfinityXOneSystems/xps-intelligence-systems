@@ -27,3 +27,5 @@ e2e/screenshots/scraper/
 reports/competition/*.json
 reports/operate/*.json
 reports/zero-state/*.json
+reports/rag/*.json
+reports/intelligence/*.json

@@ -32,6 +32,16 @@ const optimizeFiles    = existsSync("reports/optimize") ?
 const optimizeReport   = optimizeFiles.length > 0 ? readLatest(join("reports/optimize", optimizeFiles[0])) : null;
 const competeReport    = readLatest("reports/competition/latest.json");
 
+// LLM Intelligence reports
+const ragFiles         = existsSync("reports/rag") ?
+  readdirSync("reports/rag").filter((f) => f.endsWith(".json") && f !== ".gitkeep")
+    .sort().reverse().slice(0, 1) : [];
+const ragReport        = ragFiles.length > 0 ? readLatest(join("reports/rag", ragFiles[0])) : null;
+const intelFiles       = existsSync("reports/intelligence") ?
+  readdirSync("reports/intelligence").filter((f) => f.endsWith(".json") && f !== ".gitkeep")
+    .sort().reverse().slice(0, 1) : [];
+const intelReport      = intelFiles.length > 0 ? readLatest(join("reports/intelligence", intelFiles[0])) : null;
+
 const now = new Date().toISOString();
 
 const metrics = {
@@ -44,6 +54,14 @@ const metrics = {
   roi_pct:       optimizeReport?.simulation?.[0]?.roi_pct    ?? "N/A",
   competitors:   competeReport?.telemetry?.competitors_tracked ?? "N/A",
   last_run:      operateReport?.run_at ?? now,
+  // LLM Intelligence metrics
+  rag_queries:        ragReport?.queries_run        ?? "N/A",
+  rag_kb_docs:        ragReport?.total_docs         ?? "N/A",
+  rag_model:          ragReport?.model              ?? "llama-3.3-70b-versatile",
+  intel_leads:        intelReport?.leads_analyzed   ?? "N/A",
+  intel_opportunity:  intelReport?.summary?.total_opportunity_value
+    ? `$${(intelReport.summary.total_opportunity_value).toLocaleString()}` : "N/A",
+  intel_avg_score:    intelReport?.summary?.avg_score ?? "N/A",
 };
 
 const html = `<!DOCTYPE html>
@@ -212,6 +230,60 @@ const html = `<!DOCTYPE html>
       </div>
     </div>
 
+    <div class="section-title">LLM Intelligence System</div>
+    <div class="kpi-grid">
+      <div class="kpi gold-kpi">
+        <div class="kpi-label">RAG Queries Run</div>
+        <div class="kpi-value">${metrics.rag_queries}</div>
+        <div class="kpi-sub">last RAG session</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Knowledge Base Docs</div>
+        <div class="kpi-value">${metrics.rag_kb_docs}</div>
+        <div class="kpi-sub">domain + scraped leads</div>
+      </div>
+      <div class="kpi green-kpi">
+        <div class="kpi-label">Companies Profiled</div>
+        <div class="kpi-value">${metrics.intel_leads}</div>
+        <div class="kpi-sub">intelligence generated</div>
+      </div>
+      <div class="kpi gold-kpi">
+        <div class="kpi-label">Total Opportunity</div>
+        <div class="kpi-value" style="font-size:1.4rem">${metrics.intel_opportunity}</div>
+        <div class="kpi-sub">estimated pipeline value</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg Lead Score</div>
+        <div class="kpi-value">${metrics.intel_avg_score}</div>
+        <div class="kpi-sub">out of 100</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">LLM Model</div>
+        <div class="kpi-value" style="font-size:0.85rem">${metrics.rag_model}</div>
+        <div class="kpi-sub">Groq inference</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--gold);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold);margin-bottom:0.75rem;font-weight:700">RAG API Endpoints</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0.75rem;font-size:0.8rem;">
+        ${[
+          ["POST /api/intelligence/rag",     "Semantic Q&A – ask about contractors, pricing, territory"],
+          ["POST /api/intelligence/company", "Generate full company intelligence profile + pitch"],
+          ["GET  /api/intelligence/kb",      "Retrieve knowledge base articles"],
+          ["POST /api/ai/invoke",            "Direct Groq/Ollama LLM invocation"],
+        ].map(([ep, desc]) => `
+          <div style="background:#111;border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <code style="color:var(--gold);font-size:0.75rem">${ep}</code>
+            <div style="color:var(--muted);margin-top:4px">${desc}</div>
+          </div>
+        `).join("")}
+      </div>
+      <div style="margin-top:1rem;font-size:0.75rem;color:var(--muted);">
+        Example queries: "Who are the best epoxy contractors in Broward?" · "What should I sell this company?" · "What's their weakness?"
+      </div>
+    </div>
+
     <div class="section-title">Active Workflows</div>
     <div class="table-wrap">
       <table>
@@ -239,6 +311,18 @@ const html = `<!DOCTYPE html>
             <td>Weekly Mon 08:00 UTC</td>
             <td><span class="pill pill-green">Active</span></td>
             <td>${optimizeReport?.run_at?.slice(0,10) ?? "pending"}</td>
+          </tr>
+          <tr>
+            <td>xps-rag</td>
+            <td>On demand / API</td>
+            <td><span class="pill pill-green">Active</span></td>
+            <td>${ragReport?.generated_at?.slice(0,10) ?? "pending"}</td>
+          </tr>
+          <tr>
+            <td>xps-company-intel</td>
+            <td>On demand / API</td>
+            <td><span class="pill pill-green">Active</span></td>
+            <td>${intelReport?.generated_at?.slice(0,10) ?? "pending"}</td>
           </tr>
           <tr>
             <td>xps-validate</td>
