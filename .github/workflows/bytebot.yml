@@ -1,0 +1,95 @@
+name: bytebot-journey
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      record_video:
+        description: "Record video (always|retain-on-failure)"
+        required: false
+        default: "retain-on-failure"
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  doctor:
+    name: Doctor System Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Doctor (dry-run)
+        run: node scripts/agents/doctor.mjs
+        env:
+          DRY_RUN: "true"
+
+      - name: Upload Doctor Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doctor-report
+          path: reports/doctor/
+          retention-days: 14
+
+  bytebot:
+    name: ByteBot UI Agent Journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: doctor
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        run: npm run build:frontend
+
+      - name: Run ByteBot journey tests
+        run: npx playwright test e2e/bytebot-journey.spec.ts --reporter=list,html
+        env:
+          CI: "true"
+          RECORD_VIDEO: ${{ github.event.inputs.record_video || 'retain-on-failure' }}
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bytebot-screenshots
+          path: e2e/screenshots/bytebot/
+          retention-days: 14
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bytebot-playwright-report
+          path: playwright-report/
+          retention-days: 14

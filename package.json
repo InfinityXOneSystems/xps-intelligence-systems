@@ -19,6 +19,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "tsc --noEmit && npm run typecheck --workspaces --if-present",
     "test": "vitest run && npm run test --workspaces --if-present",
+    "doctor": "node scripts/agents/doctor.mjs",
     "format": "npm run format --workspaces --if-present"
   },
   "dependencies": {

@@ -119,3 +119,63 @@ leadsRouter.patch("/:id", async (req, res) => {
     res.status(500).json({ error: (err as Error).message });
   }
 });
+
+// POST /leads/bulk — import multiple leads at once (from Sales Staff scraper)
+
+/** Build a normalized location string from a scraped lead record. */
+function buildLocation(lead: Record<string, unknown>): string | null {
+  const city = String(lead.city || "").trim();
+  const state = String(lead.state || "").trim();
+  const address = String(lead.address || "").trim();
+  if (city || state) {
+    const combined = [city, state].filter(Boolean).join(", ");
+    return combined || address || null;
+  }
+  return address || null;
+}
+
+leadsRouter.post("/bulk", requireRole("sales_staff", "manager", "owner", "admin"), async (req, res) => {
+  const { leads } = req.body as { leads: Array<Record<string, unknown>> };
+  if (!Array.isArray(leads) || leads.length === 0) {
+    return res.status(400).json({ error: "leads array is required" });
+  }
+  try {
+    const db = getDb();
+    const user = req.user!;
+    let inserted = 0;
+    let skipped = 0;
+    for (const lead of leads) {
+      const companyName = String(lead.business_name || lead.company_name || "").trim();
+      if (!companyName) continue;
+      const result = await db.query(
+        `INSERT INTO leads (company_name, contact_name, email, phone, website, vertical, location, stage,
+         notes, assigned_to, created_by, score)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+         ON CONFLICT (email) WHERE email IS NOT NULL DO NOTHING
+         RETURNING id`,
+        [
+          companyName,
+          lead.owner_name || null,
+          lead.email || null,
+          lead.phone || null,
+          lead.website || null,
+          lead.industry || lead.vertical || null,
+          buildLocation(lead),
+          "Prospecting",
+          lead.notes || null,
+          user.id,
+          user.id,
+          typeof lead.score === "number" ? lead.score : null,
+        ]
+      ).catch(() => ({ rows: [] as { id: string }[] }));
+      if ((result as { rows: { id: string }[] }).rows.length > 0) {
+        inserted++;
+      } else {
+        skipped++;
+      }
+    }
+    res.json({ inserted, skipped, total: leads.length });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});

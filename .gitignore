@@ -29,3 +29,5 @@ reports/operate/*.json
 reports/zero-state/*.json
 reports/rag/*.json
 reports/intelligence/*.json
+reports/doctor/*.json
+e2e/screenshots/bytebot/

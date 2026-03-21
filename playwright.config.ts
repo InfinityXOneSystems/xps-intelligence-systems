@@ -11,7 +11,8 @@ export default defineConfig({
     baseURL: process.env.BASE_URL || "http://localhost:4173",
     trace: "on-first-retry",
     screenshot: "on",
-    video: "off",
+    // Enable video for ByteBot journey — retained on failure; use RECORD_VIDEO=always to always record
+    video: process.env.RECORD_VIDEO === "always" ? "on" : "retain-on-failure",
   },
   projects: [
     {

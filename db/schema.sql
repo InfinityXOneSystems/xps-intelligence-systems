@@ -422,3 +422,74 @@ CREATE TABLE IF NOT EXISTS optimization_reports (
   raw_report       JSONB DEFAULT '{}',
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- =========================================
+-- SALES FLOW RECORDS
+-- =========================================
+CREATE TABLE IF NOT EXISTS sales_flow_records (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lead_id UUID UNIQUE REFERENCES leads(id) ON DELETE CASCADE,
+  created_by UUID REFERENCES users(id),
+  summary TEXT,
+  recommended_action TEXT,
+  script TEXT,
+  pricing_recommendation TEXT,
+  proposal_outline TEXT,
+  follow_up_schedule JSONB DEFAULT '[]',
+  ai_model TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =========================================
+-- ACTION OUTCOMES
+-- =========================================
+CREATE TABLE IF NOT EXISTS action_outcomes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lead_id UUID REFERENCES leads(id),
+  user_id UUID REFERENCES users(id),
+  action_type TEXT NOT NULL,
+  channel TEXT,
+  outcome TEXT CHECK (outcome IN ('positive','negative','neutral','pending')),
+  notes TEXT,
+  score_delta INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =========================================
+-- INTELLIGENCE REPORTS
+-- =========================================
+CREATE TABLE IF NOT EXISTS intelligence_reports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type TEXT NOT NULL,
+  subject TEXT,
+  data JSONB DEFAULT '{}',
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =========================================
+-- FOLLOW-UP SCHEDULES
+-- =========================================
+CREATE TABLE IF NOT EXISTS follow_up_schedules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  scheduled_for TIMESTAMPTZ NOT NULL,
+  action TEXT NOT NULL,
+  channel TEXT DEFAULT 'email',
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','completed','skipped')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_follow_up_lead ON follow_up_schedules(lead_id);
+CREATE INDEX IF NOT EXISTS idx_follow_up_status ON follow_up_schedules(status, scheduled_for);
+
+-- Trigger updated_at for sales_flow_records
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS set_updated_at ON sales_flow_records;
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON sales_flow_records
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
