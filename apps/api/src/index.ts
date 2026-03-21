@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import path from "path";
+import { fileURLToPath } from "url";
 import { leadsRouter } from "./routes/leads.js";
 import { scrapeRouter } from "./routes/scrape.js";
 import { agentsRouter } from "./routes/agents.js";
@@ -24,8 +26,10 @@ import { actionsRouter } from "./routes/actions.js";
 import { feedbackRouter } from "./routes/feedback.js";
 import { metricsRouter } from "./routes/metrics.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = process.env.API_PORT || 4000;
+// Railway injects PORT; fall back to API_PORT for local dev
+const PORT = process.env.PORT || process.env.API_PORT || 4000;
 
 app.use(helmet());
 app.use(cors({ origin: process.env.APP_URL || "*" }));
@@ -78,6 +82,16 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   console.error(err.stack);
   res.status(500).json({ error: "Internal server error", message: err.message });
 });
+
+// Serve React frontend static files in production (placed after API routes)
+if (process.env.NODE_ENV === "production") {
+  const publicDir = path.join(__dirname, "..", "public");
+  app.use(express.static(publicDir));
+  // SPA fallback — any non-API route serves index.html
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(publicDir, "index.html"));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`[XPS API] Running on port ${PORT}`);

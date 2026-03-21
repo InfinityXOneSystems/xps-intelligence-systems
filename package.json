@@ -14,7 +14,7 @@
     "dev:web": "npm run dev --workspace apps/web",
     "dev:api": "npm run dev --workspace apps/api",
     "dev:worker": "npm run dev --workspace apps/worker",
-    "build": "npm run build:frontend",
+    "build": "npm run build:frontend && npm run build --workspace apps/api --if-present",
     "build:frontend": "vite build",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "tsc --noEmit && npm run typecheck --workspaces --if-present",
