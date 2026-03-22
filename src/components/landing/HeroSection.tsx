@@ -38,9 +38,9 @@ export const HeroSection = () =>
       <motion.p initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.6, delay: 0.2 }}
-    className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+    className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed text-slate-300">
       
-        Empowering 60+ locations and 200+ sales professionals with AI-driven CRM, lead intelligence, proposal automation, and competitive insights — built for the polishing industry.
+        ​AI POWERED LEAD GENERATION AND INTEL SYSTEM         
       </motion.p>
 
       <motion.div
