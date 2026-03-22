@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
-import xpsLogo from "@/assets/xps-logo.png";
-import { api } from "@/lib/api";
-import { setUser, type User } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 type AuthMode = "login" | "signup" | "forgot";
@@ -20,26 +19,55 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (session) navigate("/dashboard", { replace: true });
+  }, [session, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (mode === "forgot") {
-      toast({ title: "Coming soon", description: "Password reset is not yet available. Contact your administrator." });
+      setIsLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setIsLoading(false);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Check your email", description: "We've sent you a password reset link." });
+        setMode("login");
+      }
       return;
     }
+
     setIsLoading(true);
     try {
       if (mode === "signup") {
-        const data = await api.post<{ token: string; user: User }>("/auth/register", { email, password, full_name: name });
-        setUser(data.user, data.token);
-        navigate("/onboarding");
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name || email.split("@")[0] },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+        toast({ title: "Account created!", description: "Check your email to confirm, or you may be logged in automatically." });
       } else {
-        const data = await api.post<{ token: string; user: User }>("/auth/login", { email, password });
-        setUser(data.user, data.token);
-        navigate("/dashboard");
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       }
+      // Navigation happens via the useEffect watching session
     } catch (err) {
-      toast({ title: mode === "signup" ? "Registration failed" : "Login failed", description: (err as Error).message, variant: "destructive" });
+      toast({
+        title: mode === "signup" ? "Registration failed" : "Login failed",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +79,6 @@ const Login = () => {
       <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden border-r border-border">
         <div className="absolute inset-0 bg-gradient-hero" />
         <div className="relative text-center px-12">
-          <img src={xpsLogo} alt="XPS" className="h-24 w-24 mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-foreground mb-3">XPS Intelligence</h1>
           <p className="text-muted-foreground max-w-sm">AI-Powered Sales Command Center for Xtreme Polishing Systems</p>
           <div className="mt-8 grid grid-cols-2 gap-4 text-center">
@@ -62,7 +89,7 @@ const Login = () => {
               { v: "24/7", l: "AI Support" },
             ].map((s) => (
               <div key={s.l} className="bg-card/50 border border-border rounded-lg p-3">
-                <div className="text-lg font-bold text-gradient-gold">{s.v}</div>
+                <div className="text-lg font-bold text-primary">{s.v}</div>
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{s.l}</div>
               </div>
             ))}
@@ -74,7 +101,6 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <img src={xpsLogo} alt="XPS" className="h-10 w-10" />
             <span className="text-sm font-bold tracking-wider text-foreground">XPS INTELLIGENCE</span>
           </div>
 
@@ -83,7 +109,11 @@ const Login = () => {
               {mode === "login" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password"}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {mode === "login" ? "Sign in to your XPS Intelligence account" : mode === "signup" ? "Join the XPS sales platform" : "We'll send you a reset link"}
+              {mode === "login"
+                ? "Sign in to your XPS Intelligence account"
+                : mode === "signup"
+                ? "Join the XPS sales platform"
+                : "We'll send you a reset link"}
             </p>
           </div>
 
@@ -96,13 +126,13 @@ const Login = () => {
             )}
             <div>
               <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
-              <Input id="email" type="email" placeholder="you@xpsxpress.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 bg-card border-border" />
+              <Input id="email" type="email" placeholder="you@xpsxpress.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 bg-card border-border" required />
             </div>
             {mode !== "forgot" && (
               <div>
                 <Label htmlFor="password" className="text-xs text-muted-foreground">Password</Label>
                 <div className="relative mt-1">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-card border-border pr-10" />
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-card border-border pr-10" required minLength={6} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -115,8 +145,10 @@ const Login = () => {
               </div>
             )}
 
-            <Button variant="gold" className="w-full" size="lg" type="submit" disabled={isLoading}>
-              {isLoading ? (mode === "signup" ? "Creating account..." : "Signing in...") : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
+            <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
+              {isLoading
+                ? mode === "signup" ? "Creating account..." : mode === "forgot" ? "Sending..." : "Signing in..."
+                : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
             </Button>
           </form>
 
