@@ -1,11 +1,31 @@
 # =============================================================================
+# XPS Intelligence Systems — Dockerfile
+# TAP Policy > Authority > Truth
+#
+# BEFORE BUILDING, run the build context validator to catch missing files early:
+#   bash scripts/validate-build-context.sh
+#
+# Required paths (must exist in build context — see .dockerignore exceptions):
+#   REQUIRED: package.json, package-lock.json, .npmrc
+#   REQUIRED: apps/api/package.json, apps/api/src/, apps/api/tsconfig.json
+#   REQUIRED: apps/web/package.json   (.dockerignore: apps/web excluded, !apps/web/package.json re-included)
+#   REQUIRED: apps/worker/package.json (.dockerignore: apps/worker excluded, !apps/worker/package.json re-included)
+#   REQUIRED: index.html, src/, vite.config.ts, tailwind.config.ts, postcss.config.js
+#
+# See README.md §"Monorepo Build Requirements" for the authoritative path list.
+# =============================================================================
+
+# =============================================================================
 # Stage 1 — Frontend builder
 # Installs root deps and compiles the Vite/React app → dist/
 # =============================================================================
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 
-# Copy workspace manifests so npm ci can resolve workspace members
+# Copy workspace manifests so npm ci can resolve workspace members.
+# NOTE: apps/web and apps/worker are excluded in .dockerignore but their
+# package.json files are re-included via !apps/web/package.json exceptions.
+# If this COPY fails, run: bash scripts/validate-build-context.sh
 COPY package.json package-lock.json .npmrc ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/worker/package.json ./apps/worker/

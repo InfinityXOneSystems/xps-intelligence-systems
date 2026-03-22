@@ -1,8 +1,13 @@
 node_modules
 dist
 .git
+# apps/web and apps/worker: directories excluded for build context size, but
+# their package.json files are re-included (required for npm workspace resolution).
+# See: scripts/validate-build-context.sh and README.md §"Monorepo Build Requirements"
 apps/web
+!apps/web/package.json
 apps/worker
+!apps/worker/package.json
 services
 scripts
 reports
