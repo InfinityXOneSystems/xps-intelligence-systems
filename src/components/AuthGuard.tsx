@@ -7,7 +7,7 @@ interface AuthGuardProps {
   requireOnboarding?: boolean;
 }
 
-export function AuthGuard({ children, requireOnboarding = true }: AuthGuardProps) {
+export function AuthGuard({ children, requireOnboarding = false }: AuthGuardProps) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) return (
