@@ -10,6 +10,7 @@
   "scripts": {
     "bootstrap": "powershell -ExecutionPolicy Bypass -File ./scripts/bootstrap/Bootstrap-XpsIntelligence-AllInOne.ps1",
     "dev": "vite",
+    "build:dev": "vite build",
     "preview": "vite preview",
     "dev:web": "npm run dev --workspace apps/web",
     "dev:api": "npm run dev --workspace apps/api",
