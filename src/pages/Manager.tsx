@@ -193,7 +193,7 @@ const Manager = () => {
                               <div className="font-medium text-foreground flex items-center gap-2">
                                 {member.full_name || member.email}
                                 {isStale && (
-                                  <AlertTriangle className="h-3 w-3 text-yellow-400" title="No activity in 5+ days" />
+                                  <AlertTriangle className="h-3 w-3 text-yellow-400" />
                                 )}
                               </div>
                               <div className="text-xs text-muted-foreground">{member.email}</div>
